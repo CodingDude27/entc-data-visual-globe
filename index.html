@@ -5,188 +5,245 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Immigration Globe</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: #000000;
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a1628 0%, #1a2744 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             overflow: hidden;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            color: #ffffff;
         }
 
         #globeViz {
             width: 100vw;
             height: 100vh;
-        }
-
-        #info-panel {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            color: #ffffff;
-            padding: 24px;
-            border-radius: 16px;
-            border: 1px solid rgba(50, 184, 198, 0.3);
-            max-width: 320px;
-            z-index: 100;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            top: 0;
+            left: 0;
         }
 
-        #info-panel h2 {
-            margin: 0 0 18px 0;
-            font-size: 22px;
-            color: #32b8c6;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        .stat-row {
+        /* Clean stats overlay - top right */
+        .stats-overlay {
+            position: absolute;
+            top: 40px;
+            right: 40px;
             display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 40px;
+            z-index: 100;
         }
 
-        .stat-row:last-of-type {
-            border-bottom: none;
+        .stat-card {
+            text-align: right;
         }
 
         .stat-label {
-            color: #a0a0a0;
-            font-size: 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
             font-weight: 400;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
         }
 
         .stat-value {
-            color: #32b8c6;
+            font-size: 32px;
             font-weight: 600;
-            font-size: 16px;
+            color: #ffffff;
+            line-height: 1;
         }
 
-        #legend {
+        /* Minimal bottom panel */
+        .bottom-panel {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            color: #ffffff;
-            padding: 18px 22px;
-            border-radius: 16px;
-            border: 1px solid rgba(50, 184, 198, 0.3);
+            bottom: 40px;
+            left: 40px;
+            right: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
             z-index: 100;
         }
 
-        #legend h3 {
-            margin: 0 0 12px 0;
-            font-size: 15px;
-            color: #32b8c6;
-            font-weight: 600;
-            letter-spacing: -0.3px;
+        .location-list {
+            max-width: 400px;
         }
 
-        .legend-item {
+        .location-list h3 {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        .location-item {
             display: flex;
             align-items: center;
-            margin: 8px 0;
-            font-size: 13px;
-            font-weight: 400;
+            margin-bottom: 12px;
         }
 
-        .legend-color {
-            width: 32px;
-            height: 3px;
+        .location-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
             margin-right: 12px;
+        }
+
+        .location-name {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.9);
+            flex: 1;
+        }
+
+        .location-bar {
+            width: 200px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 2px;
+            margin: 0 12px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .instructions {
-            margin-top: 18px;
-            padding-top: 18px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            font-size: 12px;
-            color: #a0a0a0;
-            line-height: 1.6;
+        .location-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00a8cc);
+            border-radius: 2px;
+            transition: width 1s ease;
         }
 
+        .location-count {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Control buttons */
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .control-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: #ffffff;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        /* Loading */
         #loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #32b8c6;
-            font-size: 18px;
             text-align: center;
             z-index: 200;
         }
 
         .spinner {
-            border: 3px solid rgba(50, 184, 198, 0.2);
-            border-top: 3px solid #32b8c6;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 212, 255, 0.2);
+            border-top-color: #00d4ff;
             border-radius: 50%;
-            width: 48px;
-            height: 48px;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-overlay {
+                top: 20px;
+                right: 20px;
+                gap: 20px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+
+            .bottom-panel {
+                bottom: 20px;
+                left: 20px;
+                right: 20px;
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .location-bar {
+                width: 120px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="loading">
         <div class="spinner"></div>
-        <div>Loading Globe...</div>
+        <div style="color: #00d4ff; font-size: 16px;">Loading Globe...</div>
     </div>
 
-    <div id="info-panel">
-        <h2>Student Immigration</h2>
-        <div class="stat-row">
-            <span class="stat-label">Total Students</span>
-            <span class="stat-value" id="total-students">5,000</span>
+    <!-- Top stats -->
+    <div class="stats-overlay">
+        <div class="stat-card">
+            <div class="stat-label">Total Students</div>
+            <div class="stat-value" id="total-students">5,000</div>
         </div>
-        <div class="stat-row">
-            <span class="stat-label">Countries</span>
-            <span class="stat-value" id="total-countries">10</span>
+        <div class="stat-card">
+            <div class="stat-label">Countries</div>
+            <div class="stat-value" id="total-countries">10</div>
         </div>
-        <div class="stat-row">
-            <span class="stat-label">Migration Flows</span>
-            <span class="stat-value" id="total-flows">16</span>
-        </div>
-        <div class="instructions">
-            <strong style="color: #32b8c6; display: block; margin-bottom: 6px;">Controls</strong>
-            Click & Drag — Rotate<br>
-            Scroll — Zoom<br>
-            Hover Arc — Details
+        <div class="stat-card">
+            <div class="stat-label">Universities</div>
+            <div class="stat-value" id="total-unis">74</div>
         </div>
     </div>
 
-    <div id="legend">
-        <h3>Flow Intensity</h3>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #ff6b6b;"></div>
-            <span>High (500+ students)</span>
+    <!-- Bottom panel -->
+    <div class="bottom-panel">
+        <div class="location-list">
+            <h3>TOP MIGRATION ROUTES</h3>
+            <div id="location-items"></div>
         </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #ffd93d;"></div>
-            <span>Medium (100-500)</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #6bcf7f;"></div>
-            <span>Low (&lt;100)</span>
+
+        <div class="controls">
+            <div class="control-btn" id="play-pause" title="Play/Pause">
+                <svg viewBox="0 0 24 24">
+                    <path d="M6 4v16l12-8L6 4z"/>
+                </svg>
+            </div>
+            <div class="control-btn" id="fullscreen" title="Fullscreen">
+                <svg viewBox="0 0 24 24">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+            </div>
         </div>
     </div>
 
@@ -210,23 +267,24 @@
 
         const migrationFlows = [
             { origin: 'India', destination: 'Australia', count: 850 },
-            { origin: 'India', destination: 'Canada', count: 420 },
-            { origin: 'India', destination: 'UK', count: 680 },
             { origin: 'India', destination: 'USA', count: 920 },
+            { origin: 'India', destination: 'UK', count: 680 },
+            { origin: 'India', destination: 'Canada', count: 420 },
             { origin: 'UK', destination: 'Australia', count: 180 },
-            { origin: 'UK', destination: 'Canada', count: 150 },
             { origin: 'UAE', destination: 'UK', count: 240 },
             { origin: 'UAE', destination: 'Australia', count: 160 },
-            { origin: 'Ireland', destination: 'Canada', count: 90 },
-            { origin: 'Ireland', destination: 'Australia', count: 110 },
-            { origin: 'Finland', destination: 'Germany', count: 75 },
-            { origin: 'Finland', destination: 'UK', count: 95 },
-            { origin: 'South Africa', destination: 'UK', count: 130 },
             { origin: 'South Africa', destination: 'Australia', count: 180 },
-            { origin: 'Russia', destination: 'Germany', count: 200 },
-            { origin: 'Russia', destination: 'Canada', count: 140 }
         ];
 
+        // Initialize globe with clean aesthetics
+        const globe = Globe()(document.getElementById('globeViz'))
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+            .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+            .width(window.innerWidth)
+            .height(window.innerHeight);
+
+        // Create arc data with gradient colors
         const arcsData = migrationFlows.map(flow => ({
             startLat: countryCoords[flow.origin].lat,
             startLng: countryCoords[flow.origin].lng,
@@ -234,103 +292,133 @@
             endLng: countryCoords[flow.destination].lng,
             count: flow.count,
             origin: flow.origin,
-            destination: flow.destination,
-            color: flow.count > 500 ? '#ff6b6b' : flow.count > 100 ? '#ffd93d' : '#6bcf7f'
+            destination: flow.destination
         }));
 
+        // Create points
         const pointsData = Object.keys(countryCoords).map(country => ({
             lat: countryCoords[country].lat,
             lng: countryCoords[country].lng,
             country: country,
-            size: 0.35,
-            color: '#32b8c6'
+            size: 0.25
         }));
 
-        const globe = Globe()
-            (document.getElementById('globeViz'))
-            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-            .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-
+        // Configure globe
+        globe
             .arcsData(arcsData)
-            .arcColor('color')
-            .arcDashLength(() => 0.4)
-            .arcDashGap(() => 0.2)
-            .arcDashAnimateTime(() => 3000)
-            .arcStroke(d => d.count / 1000 * 2 + 0.6)
-            .arcAltitude(d => d.count / 1000 * 0.35 + 0.1)
+            .arcColor(() => ['rgba(0, 212, 255, 0.5)', 'rgba(168, 85, 247, 0.5)'])
+            .arcDashLength(0.6)
+            .arcDashGap(0.15)
+            .arcDashAnimateTime(2500)
+            .arcStroke(0.8)
+            .arcAltitude(d => d.count / 1500 + 0.15)
             .arcLabel(d => `
-                <div style="background: rgba(0,0,0,0.92); padding: 14px 16px; border-radius: 12px; border: 1px solid #32b8c6; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;">
-                    <strong style="color: #32b8c6; font-size: 15px; font-weight: 600;">${d.origin} → ${d.destination}</strong><br/>
-                    <span style="color: #fff; font-size: 14px; font-weight: 400;">Students: <strong>${d.count}</strong></span>
+                <div style="background: rgba(10, 22, 40, 0.95); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.3); font-family: Inter, sans-serif;">
+                    <div style="color: #00d4ff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">${d.origin} → ${d.destination}</div>
+                    <div style="color: rgba(255,255,255,0.8); font-size: 13px;">${d.count} students</div>
                 </div>
             `)
 
             .pointsData(pointsData)
             .pointAltitude(0.01)
-            .pointRadius('size')
-            .pointColor('color')
+            .pointRadius(0.25)
+            .pointColor(() => 'rgba(0, 212, 255, 0.8)')
             .pointLabel(d => `
-                <div style="background: rgba(0,0,0,0.92); padding: 12px 14px; border-radius: 10px; border: 1px solid #32b8c6; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;">
-                    <strong style="color: #32b8c6; font-size: 14px; font-weight: 600;">${d.country}</strong>
+                <div style="background: rgba(10, 22, 40, 0.95); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                    <strong style="color: #00d4ff; font-size: 13px;">${d.country}</strong>
                 </div>
             `)
 
-            .atmosphereColor('#32b8c6')
-            .atmosphereAltitude(0.15)
+            .atmosphereColor('rgba(0, 212, 255, 0.75)')
+            .atmosphereAltitude(0.18);
 
-            .width(window.innerWidth)
-            .height(window.innerHeight);
+        // Update location list
+        function updateLocationList() {
+            const sorted = [...migrationFlows].sort((a, b) => b.count - a.count).slice(0, 5);
+            const maxCount = sorted[0].count;
 
-        globe.pointOfView({ lat: 20, lng: 20, altitude: 2.5 }, 2000);
+            const html = sorted.map(flow => {
+                const percent = (flow.count / maxCount) * 100;
+                return `
+                    <div class="location-item">
+                        <div class="location-dot" style="background: #00d4ff;"></div>
+                        <div class="location-name">${flow.origin} → ${flow.destination}</div>
+                        <div class="location-bar">
+                            <div class="location-bar-fill" style="width: ${percent}%;"></div>
+                        </div>
+                        <div class="location-count">${flow.count}</div>
+                    </div>
+                `;
+            }).join('');
 
+            document.getElementById('location-items').innerHTML = html;
+        }
+
+        updateLocationList();
+
+        // Set initial view
+        globe.pointOfView({ lat: 20, lng: 20, altitude: 2.2 }, 1500);
+
+        // Auto-rotate
+        let autoRotate = true;
         globe.controls().autoRotate = true;
-        globe.controls().autoRotateSpeed = 0.5;
+        globe.controls().autoRotateSpeed = 0.4;
 
+        // Play/Pause control
+        document.getElementById('play-pause').addEventListener('click', () => {
+            autoRotate = !autoRotate;
+            globe.controls().autoRotate = autoRotate;
+            const svg = document.querySelector('#play-pause svg path');
+            if (autoRotate) {
+                svg.setAttribute('d', 'M6 4v16l12-8L6 4z');
+            } else {
+                svg.setAttribute('d', 'M6 4h4v16H6V4zm8 0h4v16h-4V4z');
+            }
+        });
+
+        // Fullscreen control
+        document.getElementById('fullscreen').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Hide loading
         setTimeout(() => {
             document.getElementById('loading').style.display = 'none';
-        }, 2000);
+        }, 1800);
 
+        // Resize handler
         window.addEventListener('resize', () => {
             globe.width(window.innerWidth);
             globe.height(window.innerHeight);
         });
 
-        // Retool data integration
-        window.updateGlobeWithRetoolData = function(studentData) {
-            const flowCounts = {};
+        // Data integration function
+        window.loadRetoolData = function(data) {
+            if (data.migrations) {
+                const newArcs = data.migrations.map(flow => ({
+                    startLat: countryCoords[flow.origin]?.lat || 0,
+                    startLng: countryCoords[flow.origin]?.lng || 0,
+                    endLat: countryCoords[flow.destination]?.lat || 0,
+                    endLng: countryCoords[flow.destination]?.lng || 0,
+                    count: flow.count,
+                    origin: flow.origin,
+                    destination: flow.destination
+                })).filter(arc => arc.startLat !== 0 && arc.endLat !== 0);
 
-            studentData.forEach(student => {
-                const key = `${student.origin_country}-${student.destination_country}`;
-                if (!flowCounts[key]) {
-                    flowCounts[key] = {
-                        origin: student.origin_country,
-                        destination: student.destination_country,
-                        count: 0
-                    };
+                globe.arcsData(newArcs);
+
+                if (data.totalStudents) {
+                    document.getElementById('total-students').textContent = data.totalStudents.toLocaleString();
                 }
-                flowCounts[key].count++;
-            });
-
-            const newArcsData = Object.values(flowCounts).map(flow => ({
-                startLat: countryCoords[flow.origin]?.lat || 0,
-                startLng: countryCoords[flow.origin]?.lng || 0,
-                endLat: countryCoords[flow.destination]?.lat || 0,
-                endLng: countryCoords[flow.destination]?.lng || 0,
-                count: flow.count,
-                origin: flow.origin,
-                destination: flow.destination,
-                color: flow.count > 500 ? '#ff6b6b' : flow.count > 100 ? '#ffd93d' : '#6bcf7f'
-            })).filter(arc => arc.startLat !== 0 && arc.endLat !== 0);
-
-            globe.arcsData(newArcsData);
-
-            document.getElementById('total-students').textContent = studentData.length.toLocaleString();
-            document.getElementById('total-flows').textContent = newArcsData.length;
+            }
         };
 
-        console.log('✅ Globe initialized successfully');
-        console.log('📊 Use window.updateGlobeWithRetoolData(data) to load your Retool database data');
+        console.log('✅ Clean globe initialized');
+        console.log('📊 Use window.loadRetoolData({migrations: [...], totalStudents: 5000}) to update');
     </script>
 </body>
 </html>

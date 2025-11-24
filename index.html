@@ -1,1 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Immigration Globe</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        #globeViz {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #ffffff;
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(50, 184, 198, 0.3);
+            max-width: 320px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        #info-panel h2 {
+            margin: 0 0 18px 0;
+            font-size: 22px;
+            color: #32b8c6;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .stat-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .stat-value {
+            color: #32b8c6;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #ffffff;
+            padding: 18px 22px;
+            border-radius: 16px;
+            border: 1px solid rgba(50, 184, 198, 0.3);
+            z-index: 100;
+        }
+
+        #legend h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: #32b8c6;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .legend-color {
+            width: 32px;
+            height: 3px;
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+
+        .instructions {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 12px;
+            color: #a0a0a0;
+            line-height: 1.6;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #32b8c6;
+            font-size: 18px;
+            text-align: center;
+            z-index: 200;
+        }
+
+        .spinner {
+            border: 3px solid rgba(50, 184, 198, 0.2);
+            border-top: 3px solid #32b8c6;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Loading Globe...</div>
+    </div>
+
+    <div id="info-panel">
+        <h2>Student Immigration</h2>
+        <div class="stat-row">
+            <span class="stat-label">Total Students</span>
+            <span class="stat-value" id="total-students">5,000</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Countries</span>
+            <span class="stat-value" id="total-countries">10</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Migration Flows</span>
+            <span class="stat-value" id="total-flows">16</span>
+        </div>
+        <div class="instructions">
+            <strong style="color: #32b8c6; display: block; margin-bottom: 6px;">Controls</strong>
+            Click & Drag — Rotate<br>
+            Scroll — Zoom<br>
+            Hover Arc — Details
+        </div>
+    </div>
+
+    <div id="legend">
+        <h3>Flow Intensity</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ff6b6b;"></div>
+            <span>High (500+ students)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ffd93d;"></div>
+            <span>Medium (100-500)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #6bcf7f;"></div>
+            <span>Low (&lt;100)</span>
+        </div>
+    </div>
+
+    <div id="globeViz"></div>
+
+    <script src="https://unpkg.com/globe.gl"></script>
+    <script>
+        const countryCoords = {
+            'Australia': { lat: -25.2744, lng: 133.7751 },
+            'Canada': { lat: 56.1304, lng: -106.3468 },
+            'Finland': { lat: 61.9241, lng: 25.7482 },
+            'Germany': { lat: 51.1657, lng: 10.4515 },
+            'India': { lat: 20.5937, lng: 78.9629 },
+            'Ireland': { lat: 53.4129, lng: -8.2439 },
+            'Russia': { lat: 61.5240, lng: 105.3188 },
+            'South Africa': { lat: -30.5595, lng: 22.9375 },
+            'UAE': { lat: 23.4241, lng: 53.8478 },
+            'UK': { lat: 55.3781, lng: -3.4360 },
+            'USA': { lat: 37.0902, lng: -95.7129 }
+        };
+
+        const migrationFlows = [
+            { origin: 'India', destination: 'Australia', count: 850 },
+            { origin: 'India', destination: 'Canada', count: 420 },
+            { origin: 'India', destination: 'UK', count: 680 },
+            { origin: 'India', destination: 'USA', count: 920 },
+            { origin: 'UK', destination: 'Australia', count: 180 },
+            { origin: 'UK', destination: 'Canada', count: 150 },
+            { origin: 'UAE', destination: 'UK', count: 240 },
+            { origin: 'UAE', destination: 'Australia', count: 160 },
+            { origin: 'Ireland', destination: 'Canada', count: 90 },
+            { origin: 'Ireland', destination: 'Australia', count: 110 },
+            { origin: 'Finland', destination: 'Germany', count: 75 },
+            { origin: 'Finland', destination: 'UK', count: 95 },
+            { origin: 'South Africa', destination: 'UK', count: 130 },
+            { origin: 'South Africa', destination: 'Australia', count: 180 },
+            { origin: 'Russia', destination: 'Germany', count: 200 },
+            { origin: 'Russia', destination: 'Canada', count: 140 }
+        ];
+
+        const arcsData = migrationFlows.map(flow => ({
+            startLat: countryCoords[flow.origin].lat,
+            startLng: countryCoords[flow.origin].lng,
+            endLat: countryCoords[flow.destination].lat,
+            endLng: countryCoords[flow.destination].lng,
+            count: flow.count,
+            origin: flow.origin,
+            destination: flow.destination,
+            color: flow.count > 500 ? '#ff6b6b' : flow.count > 100 ? '#ffd93d' : '#6bcf7f'
+        }));
+
+        const pointsData = Object.keys(countryCoords).map(country => ({
+            lat: countryCoords[country].lat,
+            lng: countryCoords[country].lng,
+            country: country,
+            size: 0.35,
+            color: '#32b8c6'
+        }));
+
+        const globe = Globe()
+            (document.getElementById('globeViz'))
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+            .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+
+            .arcsData(arcsData)
+            .arcColor('color')
+            .arcDashLength(() => 0.4)
+            .arcDashGap(() => 0.2)
+            .arcDashAnimateTime(() => 3000)
+            .arcStroke(d => d.count / 1000 * 2 + 0.6)
+            .arcAltitude(d => d.count / 1000 * 0.35 + 0.1)
+            .arcLabel(d => `
+                <div style="background: rgba(0,0,0,0.92); padding: 14px 16px; border-radius: 12px; border: 1px solid #32b8c6; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;">
+                    <strong style="color: #32b8c6; font-size: 15px; font-weight: 600;">${d.origin} → ${d.destination}</strong><br/>
+                    <span style="color: #fff; font-size: 14px; font-weight: 400;">Students: <strong>${d.count}</strong></span>
+                </div>
+            `)
+
+            .pointsData(pointsData)
+            .pointAltitude(0.01)
+            .pointRadius('size')
+            .pointColor('color')
+            .pointLabel(d => `
+                <div style="background: rgba(0,0,0,0.92); padding: 12px 14px; border-radius: 10px; border: 1px solid #32b8c6; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;">
+                    <strong style="color: #32b8c6; font-size: 14px; font-weight: 600;">${d.country}</strong>
+                </div>
+            `)
+
+            .atmosphereColor('#32b8c6')
+            .atmosphereAltitude(0.15)
+
+            .width(window.innerWidth)
+            .height(window.innerHeight);
+
+        globe.pointOfView({ lat: 20, lng: 20, altitude: 2.5 }, 2000);
+
+        globe.controls().autoRotate = true;
+        globe.controls().autoRotateSpeed = 0.5;
+
+        setTimeout(() => {
+            document.getElementById('loading').style.display = 'none';
+        }, 2000);
+
+        window.addEventListener('resize', () => {
+            globe.width(window.innerWidth);
+            globe.height(window.innerHeight);
+        });
+
+        // Retool data integration
+        window.updateGlobeWithRetoolData = function(studentData) {
+            const flowCounts = {};
+
+            studentData.forEach(student => {
+                const key = `${student.origin_country}-${student.destination_country}`;
+                if (!flowCounts[key]) {
+                    flowCounts[key] = {
+                        origin: student.origin_country,
+                        destination: student.destination_country,
+                        count: 0
+                    };
+                }
+                flowCounts[key].count++;
+            });
+
+            const newArcsData = Object.values(flowCounts).map(flow => ({
+                startLat: countryCoords[flow.origin]?.lat || 0,
+                startLng: countryCoords[flow.origin]?.lng || 0,
+                endLat: countryCoords[flow.destination]?.lat || 0,
+                endLng: countryCoords[flow.destination]?.lng || 0,
+                count: flow.count,
+                origin: flow.origin,
+                destination: flow.destination,
+                color: flow.count > 500 ? '#ff6b6b' : flow.count > 100 ? '#ffd93d' : '#6bcf7f'
+            })).filter(arc => arc.startLat !== 0 && arc.endLat !== 0);
+
+            globe.arcsData(newArcsData);
+
+            document.getElementById('total-students').textContent = studentData.length.toLocaleString();
+            document.getElementById('total-flows').textContent = newArcsData.length;
+        };
+
+        console.log('✅ Globe initialized successfully');
+        console.log('📊 Use window.updateGlobeWithRetoolData(data) to load your Retool database data');
+    </script>
+</body>
+</html>

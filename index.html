@@ -1,564 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Student Immigration Globe</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Immigration Globe</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      background: #0a0e1a; /* deep space dark */
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui,
-        sans-serif;
-      overflow: hidden;
-      color: #ffffff;
-    }
+        body {
+            background: linear-gradient(135deg, #0a1628 0%, #1a2744 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            color: #ffffff;
+        }
 
-    #globe {
-      width: 100vw;
-      height: 100vh;
-      cursor: grab;
-      display: block;
-    }
+        #globeViz {
+            width: 100vw;
+            height: 100vh;
+        }
 
-    #globe:active {
-      cursor: grabbing;
-    }
+        /* Minimal pause/play button - top left only */
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
 
-    /* Minimal control: pause / play */
-    #controls {
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      z-index: 10;
-    }
+        #toggle-rotation {
+            border: 1px solid rgba(59, 130, 246, 0.6);
+            background: rgba(15, 23, 42, 0.85);
+            color: #e5e7eb;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
 
-    #toggle-rotation {
-      border: 1px solid rgba(59, 130, 246, 0.6);
-      background: rgba(15, 23, 42, 0.85);
-      color: #e5e7eb;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-    }
+        #toggle-rotation:hover {
+            background: rgba(30, 64, 175, 0.95);
+            color: #ffffff;
+            border-color: rgba(59, 130, 246, 1);
+        }
 
-    #toggle-rotation:hover {
-      background: rgba(30, 64, 175, 0.9);
-      color: #ffffff;
-    }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 200;
+        }
 
-    /* Countries */
-    .country {
-      fill: #1a2332;
-      stroke: #2d3748;
-      stroke-width: 0.5;
-    }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
 
-    /* Base arc (thin) for subtle 3D / outline */
-    .arc-base {
-      fill: none;
-      stroke-linecap: round;
-      stroke-width: 0.6;
-      opacity: 0.4;
-    }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
-    /* Glowing static arc (main body) */
-    .arc-main {
-      fill: none;
-      stroke-linecap: round;
-    }
-
-    /* Moving glow segment */
-    .arc-glow {
-      fill: none;
-      stroke-linecap: round;
-      opacity: 0.0; /* will be animated */
-    }
-
-    /* Volume bands (colors & widths) */
-
-    /* High volume: red */
-    .high-base {
-      stroke: rgba(239, 68, 68, 0.4); /* #ef4444 */
-    }
-    .high-main {
-      stroke: #ef4444;
-      stroke-width: 2.5;
-      opacity: 0.8;
-    }
-    .high-glow {
-      stroke: rgba(239, 68, 68, 0.9);
-      stroke-width: 4;
-      filter: url(#glowRed);
-    }
-
-    /* Medium volume: blue */
-    .med-base {
-      stroke: rgba(59, 130, 246, 0.4); /* #3b82f6 */
-    }
-    .med-main {
-      stroke: #3b82f6;
-      stroke-width: 1.6;
-      opacity: 0.75;
-    }
-    .med-glow {
-      stroke: rgba(59, 130, 246, 0.9);
-      stroke-width: 3;
-      filter: url(#glowBlue);
-    }
-
-    /* Low volume: green */
-    .low-base {
-      stroke: rgba(16, 185, 129, 0.4); /* #10b981 */
-    }
-    .low-main {
-      stroke: #10b981;
-      stroke-width: 1.1;
-      opacity: 0.7;
-    }
-    .low-glow {
-      stroke: rgba(16, 185, 129, 0.9);
-      stroke-width: 2.2;
-      filter: url(#glowGreen);
-    }
-  </style>
+        .loading-text {
+            color: #3b82f6;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
 <body>
-  <!-- Minimal pause/play control -->
-  <div id="controls">
-    <button id="toggle-rotation">Pause rotation</button>
-  </div>
+    <!-- Loading indicator -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading Globe...</div>
+    </div>
 
-  <svg id="globe"></svg>
+    <!-- Minimal controls: pause/play only -->
+    <div id="controls">
+        <button id="toggle-rotation">⏸ Pause</button>
+    </div>
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://d3js.org/d3-geo.v3.min.js"></script>
-  <script src="https://d3js.org/topojson.v3.min.js"></script>
-  <script>
-    // ==============================
-    // CONFIGURATION & STATE
-    // ==============================
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    <div id="globeViz"></div>
 
-    const config = {
-      autoRotateSpeed: 0.005, // rad per ms
-      verticalTilt: -10,
-      horizontalTilt: 0,
-    };
+    <script src="https://unpkg.com/globe.gl"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 
-    let autoRotate = true;
-    let migrationData = []; // full dataset from Retool
-    let filteredData = []; // subset (e.g., filtered by country)
-    let selectedCountry = null;
+    <script>
+        // ============================================
+        // CONFIGURATION & COLOR THEME
+        // ============================================
+        const COLORS = {
+            lineHigh: '#ef4444',      // Red: 500+ students
+            lineMedium: '#3b82f6',    // Blue: 100-500 students
+            lineLow: '#10b981',       // Green: <100 students
+            glowHigh: 'rgba(239, 68, 68, 0.9)',
+            glowMedium: 'rgba(59, 130, 246, 0.9)',
+            glowLow: 'rgba(16, 185, 129, 0.9)'
+        };
 
-    const countryCoords = {
-      Australia: [-25.27, 133.78],
-      Canada: [56.13, -106.35],
-      Finland: [61.92, 25.75],
-      Germany: [51.17, 10.45],
-      India: [20.59, 78.96],
-      Ireland: [53.41, -8.24],
-      Russia: [61.52, 105.32],
-      "South Africa": [-30.56, 22.94],
-      UAE: [23.42, 53.85],
-      UK: [55.38, -3.44],
-      USA: [37.09, -95.71],
-    };
+        const countryCoords = {
+            'Australia': { lat: -25.2744, lng: 133.7751 },
+            'Canada': { lat: 56.1304, lng: -106.3468 },
+            'Finland': { lat: 61.9241, lng: 25.7482 },
+            'Germany': { lat: 51.1657, lng: 10.4515 },
+            'India': { lat: 20.5937, lng: 78.9629 },
+            'Ireland': { lat: 53.4129, lng: -8.2439 },
+            'Russia': { lat: 61.5240, lng: 105.3188 },
+            'South Africa': { lat: -30.5595, lng: 22.9375 },
+            'UAE': { lat: 23.4241, lng: 53.8478 },
+            'UK': { lat: 55.3781, lng: -3.4360 },
+            'USA': { lat: 37.0902, lng: -95.7129 }
+        };
 
-    // ==============================
-    // SVG & PROJECTION
-    // ==============================
-    const svg = d3
-      .select("#globe")
-      .attr("width", width)
-      .attr("height", height);
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        let globeInstance = null;
+        let allMigrationData = [];
+        let filteredData = [];
+        let selectedCountry = null;
+        let autoRotate = true;
 
-    const projection = d3
-      .geoOrthographic()
-      .scale(Math.min(width, height) / 2.1)
-      .translate([width / 2, height / 2])
-      .rotate([config.horizontalTilt, config.verticalTilt])
-      .precision(0.5);
+        // ============================================
+        // HELPERS
+        // ============================================
+        function getLineColor(count) {
+            if (count >= 500) return COLORS.lineHigh;
+            if (count >= 100) return COLORS.lineMedium;
+            return COLORS.lineLow;
+        }
 
-    const path = d3.geoPath().projection(projection);
+        function getLineGlow(count) {
+            if (count >= 500) return COLORS.glowHigh;
+            if (count >= 100) return COLORS.glowMedium;
+            return COLORS.glowLow;
+        }
 
-    const sphere = { type: "Sphere" };
+        function getLineWidth(count) {
+            return Math.min(3.0, Math.max(0.8, count / 250));
+        }
 
-    // 3D-ish sphere: fill + gradient halo
-    svg
-      .append("defs")
-      .append("radialGradient")
-      .attr("id", "sphereGradient")
-      .selectAll("stop")
-      .data([
-        { offset: "0%", color: "#111827" },
-        { offset: "50%", color: "#111827" },
-        { offset: "100%", color: "#020617" },
-      ])
-      .enter()
-      .append("stop")
-      .attr("offset", (d) => d.offset)
-      .attr("stop-color", (d) => d.color);
+        function getArcAltitude(count) {
+            return Math.min(0.4, Math.max(0.15, count / 2000));
+        }
 
-    // Glow filters for arcs
-    const defs = svg.append("defs");
+        // ============================================
+        // INITIALIZE GLOBE
+        // ============================================
+        function initGlobe() {
+            globeInstance = Globe()(document.getElementById('globeViz'))
+                .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+                .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+                .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+                .width(window.innerWidth)
+                .height(window.innerHeight)
+                .atmosphereColor('rgba(100, 150, 255, 0.3)')
+                .atmosphereAltitude(0.15);
 
-    const makeGlow = (id, color) => {
-      const filter = defs
-        .append("filter")
-        .attr("id", id)
-        .attr("x", "-50%")
-        .attr("y", "-50%")
-        .attr("width", "200%")
-        .attr("height", "200%");
-      filter
-        .append("feGaussianBlur")
-        .attr("stdDeviation", 3)
-        .attr("result", "coloredBlur");
-      const feMerge = filter.append("feMerge");
-      feMerge.append("feMergeNode").attr("in", "coloredBlur");
-      feMerge.append("feMergeNode").attr("in", "SourceGraphic");
-    };
+            // Configure controls
+            globeInstance.controls().enableDamping = true;
+            globeInstance.controls().dampingFactor = 0.05;
+            globeInstance.controls().rotateSpeed = 0.5;
+            globeInstance.controls().autoRotate = true;
+            globeInstance.controls().autoRotateSpeed = 0.4;
 
-    makeGlow("glowRed", "rgba(239,68,68,0.9)");
-    makeGlow("glowBlue", "rgba(59,130,246,0.9)");
-    makeGlow("glowGreen", "rgba(16,185,129,0.9)");
+            // Initial view
+            globeInstance.pointOfView({ lat: 20, lng: 20, altitude: 2.2 }, 0);
 
-    // Draw sphere body
-    svg
-      .append("path")
-      .datum(sphere)
-      .attr("class", "sphere-fill")
-      .attr("d", path);
+            console.log('✅ Globe initialized - ready for Retool data');
+        }
 
-    // Soft halo overlay
-    svg
-      .append("path")
-      .datum(sphere)
-      .attr("class", "sphere-glow")
-      .attr("d", path);
+        // ============================================
+        // UPDATE GLOBE WITH DATA
+        // ============================================
+        function updateGlobe(data, filterCountry = null) {
+            if (!data || !data.migrations) return;
 
-    const countriesGroup = svg.append("g").attr("class", "countries");
-    const arcsBaseGroup = svg.append("g").attr("class", "arcs-base");
-    const arcsMainGroup = svg.append("g").attr("class", "arcs-main");
-    const arcsGlowGroup = svg.append("g").attr("class", "arcs-glow");
+            allMigrationData = data.migrations;
 
-    // ==============================
-    // WORLD MAP
-    // ==============================
-    d3.json(
-      "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
-    ).then((world) => {
-      const countries = topojson.feature(world, world.objects.countries);
-
-      countriesGroup
-        .selectAll("path")
-        .data(countries.features)
-        .enter()
-        .append("path")
-        .attr("class", "country")
-        .attr("d", path);
-    });
-
-    // ==============================
-    // ARC HELPERS (volume -> style)
-    // ==============================
-    function classifyVolume(count) {
-      if (count >= 500) return "high";
-      if (count >= 100) return "med";
-      return "low";
-    }
-
-    function arcClassBase(count) {
-      const v = classifyVolume(count);
-      if (v === "high") return "arc-base high-base";
-      if (v === "med") return "arc-base med-base";
-      return "arc-base low-base";
-    }
-
-    function arcClassMain(count) {
-      const v = classifyVolume(count);
-      if (v === "high") return "arc-main high-main";
-      if (v === "med") return "arc-main med-main";
-      return "arc-main low-main";
-    }
-
-    function arcClassGlow(count) {
-      const v = classifyVolume(count);
-      if (v === "high") return "arc-glow high-glow";
-      if (v === "med") return "arc-glow med-glow";
-      return "arc-glow low-glow";
-    }
-
-    // Convert migration rows into geo LineStrings
-    function buildArcGeoData(rows) {
-      return rows
-        .map((d) => {
-          const src = countryCoords[d.origin];
-          const dst = countryCoords[d.destination];
-          if (!src || !dst) return null;
-          return {
-            type: "LineString",
-            coordinates: [
-              [src[1], src[0]],
-              [dst[1], dst[0]],
-            ],
-            count: d.count,
-            origin: d.origin,
-            destination: d.destination,
-          };
-        })
-        .filter(Boolean);
-    }
-
-    // Build many segments along great circle for smoother 3D feel
-    function pathForArc(lineString) {
-      const [start, end] = lineString.coordinates;
-      const interpolate = d3.geoInterpolate(start, end);
-      const coords = [];
-      const steps = 80;
-      for (let i = 0; i <= steps; i++) {
-        coords.push(interpolate(i / steps));
-      }
-      return path({ type: "LineString", coordinates: coords });
-    }
-
-    // ==============================
-    // DRAW ALL ARCS
-    // ==============================
-    function drawArcs() {
-      const arcs = buildArcGeoData(filteredData);
-
-      arcsBaseGroup.selectAll("path").remove();
-      arcsMainGroup.selectAll("path").remove();
-      arcsGlowGroup.selectAll("path").remove();
-
-      // Base outline
-      arcsBaseGroup
-        .selectAll("path")
-        .data(arcs)
-        .enter()
-        .append("path")
-        .attr("class", (d) => arcClassBase(d.count))
-        .attr("d", pathForArc);
-
-      // Main line
-      arcsMainGroup
-        .selectAll("path")
-        .data(arcs)
-        .enter()
-        .append("path")
-        .attr("class", (d) => arcClassMain(d.count))
-        .attr("d", pathForArc);
-
-      // Glow segments (animated)
-      const glow = arcsGlowGroup
-        .selectAll("path")
-        .data(arcs)
-        .enter()
-        .append("path")
-        .attr("class", (d) => arcClassGlow(d.count))
-        .attr("d", pathForArc);
-
-      animateGlow(glow);
-    }
-
-    // ==============================
-    // GLOW ANIMATION
-    // ==============================
-    function animateGlow(selection) {
-      // This animates stroke-dashoffset to simulate motion
-      selection.each(function (d, i) {
-        const pathEl = this;
-        const totalLength = pathEl.getTotalLength();
-
-        d3.select(pathEl)
-          .attr("stroke-dasharray", totalLength)
-          .attr("stroke-dashoffset", totalLength)
-          .transition()
-          .delay(i * 200) // stagger
-          .duration(2500)
-          .ease(d3.easeLinear)
-          .attr("stroke-dashoffset", 0)
-          .on("end", function repeat() {
-            if (!autoRotate) {
-              // still run animation, but you can skip if you want
+            // Filter if needed
+            if (filterCountry) {
+                filteredData = allMigrationData.filter(flow =>
+                    flow.origin === filterCountry || flow.destination === filterCountry
+                );
+            } else {
+                filteredData = allMigrationData;
             }
-            d3.select(this)
-              .attr("stroke-dashoffset", totalLength)
-              .transition()
-              .duration(2500)
-              .ease(d3.easeLinear)
-              .attr("stroke-dashoffset", 0)
-              .on("end", repeat);
-          });
-      });
-    }
 
-    // ==============================
-    // DRAG & AUTO ROTATION
-    // ==============================
-    const drag = d3
-      .drag()
-      .on("start", function (event) {
-        autoRotate = false;
-        const r = projection.rotate();
-        this._x0 = event.x;
-        this._y0 = event.y;
-        this._r0 = r;
-      })
-      .on("drag", function (event) {
-        const r = this._r0;
-        projection.rotate([
-          r[0] + (event.x - this._x0) * 0.5,
-          r[1] - (event.y - this._y0) * 0.5,
-        ]);
-        svg.selectAll("path").attr("d", path);
-      });
+            // Create arc data
+            const arcsData = filteredData.map(flow => {
+                const startCoord = countryCoords[flow.origin];
+                const endCoord = countryCoords[flow.destination];
 
-    svg.call(drag);
+                if (!startCoord || !endCoord) return null;
 
-    d3.timer((elapsed) => {
-      if (autoRotate) {
-        const r = projection.rotate();
-        projection.rotate([
-          r[0] + config.autoRotateSpeed * elapsed,
-          r[1],
-        ]);
-        svg.selectAll("path").attr("d", path);
-      }
-    });
+                return {
+                    startLat: startCoord.lat,
+                    startLng: startCoord.lng,
+                    endLat: endCoord.lat,
+                    endLng: endCoord.lng,
+                    count: flow.count,
+                    origin: flow.origin,
+                    destination: flow.destination
+                };
+            }).filter(arc => arc !== null);
 
-    // ==============================
-    // PAUSE / PLAY BUTTON
-    // ==============================
-    const toggleBtn = document.getElementById("toggle-rotation");
-    toggleBtn.addEventListener("click", () => {
-      autoRotate = !autoRotate;
-      toggleBtn.textContent = autoRotate ? "Pause rotation" : "Play rotation";
-    });
+            // Create points for countries
+            const activeCountries = new Set();
+            filteredData.forEach(flow => {
+                if (countryCoords[flow.origin]) activeCountries.add(flow.origin);
+                if (countryCoords[flow.destination]) activeCountries.add(flow.destination);
+            });
 
-    // ==============================
-    // RETOOL-FRIENDLY API
-    // ==============================
-    function setData(data) {
-      if (!data || !data.migrations) return;
-      migrationData = data.migrations;
-      filteredData = migrationData;
-      drawArcs();
-      console.log("✅ Globe data loaded:", migrationData.length, "routes");
-    }
+            const pointsData = Array.from(activeCountries).map(country => ({
+                lat: countryCoords[country].lat,
+                lng: countryCoords[country].lng,
+                country: country,
+                size: selectedCountry === country ? 0.5 : 0.3
+            }));
 
-    function filterCountry(country) {
-      selectedCountry = country;
-      if (!country) {
-        filteredData = migrationData;
-      } else {
-        filteredData = migrationData.filter(
-          (d) => d.origin === country || d.destination === country
-        );
-      }
-      drawArcs();
+            // Update globe
+            globeInstance
+                .arcsData(arcsData)
+                .arcColor(d => getLineColor(d.count))
+                .arcStroke(d => getLineWidth(d.count))
+                .arcAltitude(d => getArcAltitude(d.count))
+                .arcDashLength(0.8)
+                .arcDashGap(0.05)
+                .arcDashAnimateTime(3000)
+                .arcLabel(d => `
+                    <div style="background: rgba(10, 22, 40, 0.95); padding: 12px 16px; border-radius: 8px; border: 1px solid ${getLineColor(d.count)}; font-family: Inter, sans-serif;">
+                        <div style="color: ${getLineColor(d.count)}; font-size: 14px; font-weight: 600; margin-bottom: 4px;">${d.origin} → ${d.destination}</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 13px;">${d.count} students</div>
+                    </div>
+                `)
+                .pointsData(pointsData)
+                .pointAltitude(0.01)
+                .pointRadius(d => d.size)
+                .pointColor(d => selectedCountry === d.country ? '#fbbf24' : '#60a5fa')
+                .pointLabel(d => `
+                    <div style="background: rgba(10, 22, 40, 0.95); padding: 10px 14px; border-radius: 8px; border: 1px solid #3b82f6;">
+                        <strong style="color: #60a5fa; font-size: 13px;">${d.country}</strong>
+                    </div>
+                `);
 
-      if (country && countryCoords[country]) {
-        const [lat, lng] = countryCoords[country];
-        const current = projection.rotate();
-        d3.transition()
-          .duration(1000)
-          .tween("rotate", () => {
-            const r = d3.interpolate(current, [-lng, -lat]);
-            return (t) => {
-              projection.rotate(r(t));
-              svg.selectAll("path").attr("d", path);
-            };
-          });
-      }
-    }
+            // Camera tracking for filtered country
+            if (filterCountry && countryCoords[filterCountry]) {
+                globeInstance.pointOfView(
+                    {
+                        lat: countryCoords[filterCountry].lat,
+                        lng: countryCoords[filterCountry].lng,
+                        altitude: 1.8
+                    },
+                    1200
+                );
+            }
 
-    function selectRoute(origin, destination) {
-      const filtered = migrationData.filter(
-        (d) => d.origin === origin && d.destination === destination
-      );
-      if (!filtered.length) return;
-      filteredData = filtered;
-      drawArcs();
+            console.log(`✅ Globe updated: ${arcsData.length} routes visible`);
+        }
 
-      const src = countryCoords[origin];
-      const dst = countryCoords[destination];
-      if (src && dst) {
-        const midLat = (src[0] + dst[0]) / 2;
-        const midLng = (src[1] + dst[1]) / 2;
-        const current = projection.rotate();
-        d3
-          .transition()
-          .duration(1000)
-          .tween("rotate", () => {
-            const r = d3.interpolate(current, [-midLng, -midLat]);
-            return (t) => {
-              projection.rotate(r(t));
-              svg.selectAll("path").attr("d", path);
-            };
-          });
-      }
-    }
-
-    function clearFilters() {
-      selectedCountry = null;
-      filteredData = migrationData;
-      drawArcs();
-    }
-
-    function resetCamera() {
-      const current = projection.rotate();
-      d3.transition()
-        .duration(1000)
-        .tween("rotate", () => {
-          const r = d3.interpolate(
-            current,
-            [config.horizontalTilt, config.verticalTilt]
-          );
-          return (t) => {
-            projection.rotate(r(t));
-            svg.selectAll("path").attr("d", path);
-          };
+        // ============================================
+        // PAUSE/PLAY CONTROL
+        // ============================================
+        const toggleBtn = document.getElementById('toggle-rotation');
+        toggleBtn.addEventListener('click', () => {
+            autoRotate = !autoRotate;
+            globeInstance.controls().autoRotate = autoRotate;
+            toggleBtn.textContent = autoRotate ? '⏸ Pause' : '▶ Play';
         });
-    }
 
-    window.globeAPI = {
-      loadData: setData,
-      filterCountry,
-      selectRoute,
-      clearFilters,
-      resetCamera,
-      getState: () => ({
-        selectedCountry,
-        visibleRoutes: filteredData.length,
-        totalRoutes: migrationData.length,
-      }),
-    };
+        // ============================================
+        // RETOOL API (Main Interface)
+        // ============================================
+        window.globeAPI = {
+            // Load initial data from Retool
+            loadData: function(data) {
+                if (data && data.migrations) {
+                    updateGlobe(data);
+                    console.log('✅ Data loaded:', data.migrations.length, 'routes');
+                }
+            },
 
-    // Optional: PostMessage listener if you prefer that pattern
-    window.addEventListener("message", (event) => {
-      const { type, data, country, route } = event.data || {};
-      if (type === "INIT_DATA") setData(data);
-      if (type === "FILTER_COUNTRY") filterCountry(country);
-      if (type === "SELECT_ROUTE" && route)
-        selectRoute(route.origin, route.destination);
-      if (type === "CLEAR_FILTER") clearFilters();
-    });
+            // Filter by country - shows only flows in/out
+            filterCountry: function(country) {
+                selectedCountry = country;
+                updateGlobe({ migrations: allMigrationData }, country);
+                console.log('✅ Filtered to:', country);
+            },
 
-    console.log("🌍 D3 Globe ready. Use window.globeAPI from parent.");
-  </script>
+            // Clear all filters - show everything
+            clearFilters: function() {
+                selectedCountry = null;
+                updateGlobe({ migrations: allMigrationData });
+                console.log('✅ All routes visible');
+            },
+
+            // Highlight specific route and zoom to it
+            selectRoute: function(origin, destination) {
+                const route = allMigrationData.find(d =>
+                    d.origin === origin && d.destination === destination
+                );
+
+                if (route && countryCoords[origin] && countryCoords[destination]) {
+                    const startCoord = countryCoords[origin];
+                    const endCoord = countryCoords[destination];
+                    const midLat = (startCoord.lat + endCoord.lat) / 2;
+                    const midLng = (startCoord.lng + endCoord.lng) / 2;
+
+                    // Show only this route
+                    filteredData = [route];
+                    allMigrationData = [route]; // Temporarily for display
+
+                    // Update display
+                    updateGlobe({ migrations: [route] }, null);
+
+                    // Track camera to route
+                    globeInstance.pointOfView(
+                        { lat: midLat, lng: midLng, altitude: 1.5 },
+                        1000
+                    );
+
+                    console.log('✅ Route selected:', origin, '→', destination);
+                }
+            },
+
+            // Reset camera to default
+            resetCamera: function() {
+                globeInstance.pointOfView({ lat: 20, lng: 20, altitude: 2.2 }, 1000);
+            },
+
+            // Get current state (for debugging)
+            getState: function() {
+                return {
+                    selectedCountry,
+                    visibleRoutes: filteredData.length,
+                    totalRoutes: allMigrationData.length,
+                    autoRotate
+                };
+            }
+        };
+
+        // ============================================
+        // POSTMESSAGE API (Alternative for Retool)
+        // ============================================
+        window.addEventListener('message', (event) => {
+            const { type, data, country, route } = event.data || {};
+
+            if (type === 'INIT_DATA') window.globeAPI.loadData(data);
+            if (type === 'FILTER_COUNTRY') window.globeAPI.filterCountry(country);
+            if (type === 'SELECT_ROUTE' && route) 
+                window.globeAPI.selectRoute(route.origin, route.destination);
+            if (type === 'CLEAR_FILTER') window.globeAPI.clearFilters();
+        });
+
+        // ============================================
+        // WINDOW RESIZE
+        // ============================================
+        window.addEventListener('resize', () => {
+            if (globeInstance) {
+                globeInstance
+                    .width(window.innerWidth)
+                    .height(window.innerHeight);
+            }
+        });
+
+        // ============================================
+        // STARTUP
+        // ============================================
+        initGlobe();
+
+        setTimeout(() => {
+            document.getElementById('loading').style.display = 'none';
+        }, 1500);
+
+        console.log('🌍 Globe ready for Retool');
+        console.log('📡 API available: window.globeAPI');
+        console.log('   - globeAPI.loadData({migrations: [...]})');
+        console.log('   - globeAPI.filterCountry("India")');
+        console.log('   - globeAPI.selectRoute("India", "USA")');
+        console.log('   - globeAPI.clearFilters()');
+    </script>
 </body>
 </html>

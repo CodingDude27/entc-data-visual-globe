@@ -1,204 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Student Migration Globe</title>
-  <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
-  <script src="https://unpkg.com/three-globe@2.30.7/dist/three-globe.min.js"></script>
-  <script src="https://unpkg.com/dat.gui@0.7.9/build/dat.gui.min.js"></script>
-  <!-- Theme & fonts -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Pathways Globe</title>
   <style>
-    body {
-      margin: 0;
-      background: #0f172a;
-      font-family: 'Inter', Arial, sans-serif;
-      color: #fff;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #0f172a; 
+      font-family: sans-serif; 
+      overflow: hidden;
     }
-    .sidebar {
-      position: absolute; top: 20px; left: 24px; z-index: 10;
-      background: #1e293bcc;
-      border-radius: 12px;
-      padding: 18px 18px 16px 22px;
-      min-width: 275px;
-      max-width: 350px;
-      box-shadow: 0 10px 30px #0008;
-      font-size: 14px;
-    }
-    .sidebar h1 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: .01em;
-      color: #3b82f6;
-      margin: 0 0 16px;
-    }
-    .stat-row { margin: 10px 0; color: #8b5cf6; font-weight: 600; }
-    .stat-row .label {color: #b3b8ca; font-weight:400;}
-    .control-group {margin: 8px 0;}
-    select, button {
-      font-family:inherit; font-size:14px; border-radius:6px; border:none; padding:4px 9px;
-      margin-right: 6px; background:#253057; color:#fff;
-    }
-    button {
-      background:#3b82f6; color:#fff; font-weight:600; cursor:pointer; border-radius:8px; padding:6px 18px;
-      margin-top:6px;
-    }
-    table {
-      margin-top:12px; width:95%;
-      border-collapse:collapse;
-      font-size:13px; color: #dcdcf6;
-      background: #1e293b;
-    }
-    th, td { border-bottom: 1px solid #253057; padding:4px 7px }
-    th { color:#8b5cf6; font-weight:600; }
-    td { font-weight:400 }
-    .hide { display: none }
-    .attribution {position:absolute; bottom:6px; right:10px; font-size:11px; color:#6d808d;}
+    #globeViz { width: 100vw; height: 100vh; }
   </style>
+  <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
 </head>
 <body>
-<div class="sidebar" id="sidebar">
-  <h1>Country Migration Globe</h1>
-  <div class="stat-row" id="stats"></div>
-  <div class="control-group">
-    <label><span class="label">Origin:</span>
-      <select id="originSelect"></select>
-    </label>
-  </div>
-  <div class="control-group">
-    <label><span class="label">Destination:</span>
-      <select id="destSelect"></select>
-    </label>
-    <button id="resetBtn">Show All</button>
-  </div>
-  <div style="margin-top:14px;color:#3b82f6;font-weight:600;">Top 5 Routes</div>
-  <table id="routesTable">
-    <thead><tr><th>From</th><th>To</th><th>Count</th></tr></thead>
-    <tbody></tbody>
-  </table>
-</div>
-<div id="globeViz"></div>
-<div class="attribution">Built with three-globe.js • Theme: Retool/UNSW</div>
-<script>
-// Replace this with your live data or API fetch!
-// Each entry: {origin: "India", destination: "USA", count: 120}
-const routes = [
-  {origin: "India", destination: "USA", count: 120},
-  {origin: "India", destination: "UK", count: 44},
-  {origin: "China", destination: "USA", count: 67},
-  {origin: "USA", destination: "UK", count: 51},
-  {origin: "India", destination: "Australia", count: 38},
-  {origin: "Germany", destination: "India", count: 29},
-  {origin: "Australia", destination: "USA", count: 22},
-  {origin: "Brazil", destination: "Portugal", count: 34},
-  {origin: "USA", destination: "Germany", count: 16},
-  {origin: "UK", destination: "USA", count: 22},
-];
+  <div id="globeViz"></div>
 
-// Extract unique country names
-const allCountries = Array.from(new Set(routes.flatMap(r => [r.origin, r.destination]))).sort();
+  <script>
+    // 1. Get data from URL query parameters (passed from Retool)
+    const params = new URLSearchParams(window.location.search);
+    const routesJSON = params.get('routes');
+    const pointsJSON = params.get('points');
+    const summaryJSON = params.get('summary');
+    const selectedCountry = params.get('country');
 
-// Set up selects
-const originSelect = document.getElementById('originSelect');
-const destSelect   = document.getElementById('destSelect');
-originSelect.innerHTML = '<option value="">(any origin)</option>' + allCountries.map(c=>`<option>${c}</option>`).join('');
-destSelect.innerHTML   = '<option value="">(any destination)</option>' + allCountries.map(c=>`<option>${c}</option>`).join('');
+    // Parse JSON data
+    const routes = routesJSON ? JSON.parse(decodeURIComponent(routesJSON)) : [];
+    const points = pointsJSON ? JSON.parse(decodeURIComponent(pointsJSON)) : [];
+    const summary = summaryJSON ? JSON.parse(decodeURIComponent(summaryJSON)) : [];
 
-// Table rendering
-function updateTable(filtered) {
-  let top = [...filtered].sort((a,b) => b.count-a.count).slice(0,5);
-  document.querySelector("#routesTable tbody").innerHTML = top.map(r =>
-    `<tr><td>${r.origin}</td><td>${r.destination}</td><td>${r.count}</td></tr>`).join('');
-}
-// Statistic rendering
-function updateStats(filtered) {
-  const totalRoutes = filtered.length;
-  const totalStudents = filtered.reduce((s,r)=>s+r.count,0);
-  document.getElementById('stats').innerHTML =
-    `<span style="color:#8b5cf6">${totalStudents}</span> Students across <span style="color:#3b82f6">${totalRoutes}</span> migration routes.`;
-}
+    // 2. Initialize Globe
+    const elem = document.getElementById('globeViz');
+    const world = Globe()
+      (elem)
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+      .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+      .backgroundColor('#0f172a');
 
-// Filtering logic
-function getFiltered() {
-  const o = originSelect.value, d = destSelect.value;
-  return routes.filter(r =>
-    (!o || r.origin === o) && (!d || r.destination === d)
-  );
-}
+    // 3. Render Arcs (Migration Routes) - GLOWING EFFECT
+    if (routes && routes.length) {
+      world
+        .arcsData(routes)
+        .arcStartLat(d => d.origin_lat)
+        .arcStartLng(d => d.origin_lng)
+        .arcEndLat(d => d.dest_lat)
+        .arcEndLng(d => d.dest_lng)
+        .arcColor(d => {
+          // Glowing color effect based on flow intensity
+          const intensity = d.flow_count / 100; // normalize
+          return intensity > 0.5 ? '#ec4899' : '#3b82f6'; // Pink (glow) or Blue
+        })
+        .arcDashLength(0.4)
+        .arcDashGap(0.2)
+        .arcDashAnimateTime(1500)
+        .arcStroke(0.6)
+        .arcOpacity(0.8)
+        .arcCurveResolution(64);
+    }
 
-originSelect.onchange = destSelect.onchange = function() {
-  const filtered = getFiltered();
-  updateStats(filtered);
-  updateTable(filtered);
-  showGlobeArcs(filtered);
-};
-document.getElementById('resetBtn').onclick = function() {
-  originSelect.value = "";
-  destSelect.value = "";
-  const filtered = routes;
-  updateStats(filtered);
-  updateTable(filtered);
-  showGlobeArcs(filtered);
-};
+    // 4. Render Points (Universities) - GREEN DOTS
+    if (points && points.length) {
+      world
+        .pointsData(points)
+        .pointLat('latitude')
+        .pointLng('longitude')
+        .pointColor(() => '#10b981') // Emerald Green
+        .pointRadius(d => Math.min(d.incoming_students / 100, 0.5)) // Size based on student count
+        .pointAltitude(0.02)
+        .pointLabel(d => `<b>${d.university_name}</b><br/>Students: ${d.incoming_students}`);
+    }
 
-// --- 3D Globe ---
-const Globe = window.Globe;
-const globeContainer = document.getElementById('globeViz');
-globeContainer.style.position = "absolute";
-globeContainer.style.left = "0";
-globeContainer.style.top = "0";
-globeContainer.style.width = "100vw";
-globeContainer.style.height = "100vh";
-globeContainer.style.zIndex = "1";
+    // 5. Auto-Zoom to Selected Country
+    if (selectedCountry && summary && summary.length > 0) {
+      const target = summary.find(c => c.country_name === selectedCountry);
+      
+      if (target) {
+        // Smooth camera pan to country
+        world.pointOfView({
+          lat: parseFloat(target.latitude),
+          lng: parseFloat(target.longitude),
+          altitude: 1.5
+        }, 1500); // 1.5s animation
+      }
+    } else {
+      // Default: Auto-rotate
+      world.controls().autoRotate = true;
+      world.controls().autoRotateSpeed = 0.5;
+    }
 
-const world = Globe()(globeContainer)
-  .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
-  .backgroundColor('#0f172a')
-  .arcsData([])
-  .arcStartLat(0) // placeholder; replaced below
-  .arcStartLng(0)
-  .arcEndLat(0)
-  .arcEndLng(0)
-  .arcColor(() => '#3b82f6')
-  .arcDashLength(0.45)
-  .arcDashGap(1)
-  .arcDashInitialGap(()=>Math.random())
-  .arcStroke(2)
-  .arcAltitude(e=>0.15 + Math.random()*0.2)
-  .arcDashAnimateTime(2000)
-  .showAtmosphere(true)
-  .atmosphereColor('#3b82f6')
-  .atmosphereAltitude(0.23)
-  .onArcClick(arc => {
-    // Zoom to arc's midpoint and display details
-    const {startLat, startLng, endLat, endLng} = arc;
-    world.pointOfView({lat:(startLat+endLat)/2, lng:(startLng+endLng)/2}, 800);
-  });
-
-// Country to lat/lng [use a real country data list or geo lookup for production!]
-const countryPos = {
-  "India": [20.59,78.96], "USA":[37.1,-95.7], "UK":[55.3,-3.4],
-  "China":[35.9,104.2], "Australia":[-25.2,133.8], "Germany":[51.2,10.5],
-  "Brazil":[-14.2,-51.9], "Portugal":[39.4,-8.2]
-};
-
-function showGlobeArcs(filtered) {
-  // Transform routes into globe arc data
-  let data = filtered.map(r => ({
-    ...r,
-    startLat: (countryPos[r.origin]||[0,0])[0], startLng: (countryPos[r.origin]||[0,0])[1],
-    endLat:   (countryPos[r.destination]||[0,0])[0], endLng:   (countryPos[r.destination]||[0,0])[1]
-  }));
-  world.arcsData(data);
-}
-showGlobeArcs(routes); // initial
-
-// Initial stats/render
-updateStats(routes);
-updateTable(routes);
-
-window.onresize = () => world.width([window.innerWidth])(window.innerHeight);
-</script>
-<!-- Google Fonts preload for Inter (for Retool/UNSW style) -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    // 6. Handle window resize
+    window.addEventListener('resize', () => {
+      world.width(window.innerWidth).height(window.innerHeight);
+    });
+  </script>
 </body>
 </html>

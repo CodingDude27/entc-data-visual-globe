@@ -3,98 +3,194 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Pathways Globe</title>
+  <title>Student Pathways Globe - Real Data</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
       background: #0f172a; 
-      font-family: sans-serif; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow: hidden;
+      color: #fff;
     }
-    #globeViz { width: 100vw; height: 100vh; }
+    #globeViz { 
+      width: 100vw; 
+      height: 100vh; 
+      display: block;
+    }
+    #info {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(15, 23, 42, 0.95);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #3b82f6;
+      font-size: 12px;
+      max-width: 300px;
+      backdrop-filter: blur(10px);
+    }
+    #info h3 { color: #3b82f6; margin-bottom: 8px; font-size: 14px; }
+    #info p { margin: 4px 0; color: #cbd5e1; }
+    #info .stat { font-weight: bold; color: #10b981; }
   </style>
-  <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
 </head>
 <body>
   <div id="globeViz"></div>
+  <div id="info">
+    <h3>🌍 Student Migration Flows</h3>
+    <p><strong>Routes:</strong> <span class="stat" id="routeCount">0</span></p>
+    <p><strong>Universities:</strong> <span class="stat" id="uniCount">0</span></p>
+    <p><strong>Total Students:</strong> <span class="stat" id="studentCount">0</span></p>
+    <p style="margin-top: 10px; font-size: 11px; color: #94a3b8;">Drag to rotate • Scroll to zoom</p>
+  </div>
+
+  <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
 
   <script>
-    // 1. Get data from URL query parameters (passed from Retool)
-    const params = new URLSearchParams(window.location.search);
-    const routesJSON = params.get('routes');
-    const pointsJSON = params.get('points');
-    const summaryJSON = params.get('summary');
-    const selectedCountry = params.get('country');
+    // ==================== REAL DATA FROM CSV ====================
+    
+    // MIGRATION FLOWS (90 Unique Routes)
+    const migrationFlows = [
+      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 72 },
+      { origin_country: "India", origin_lat: 20.5937, origin_lng: 78.9629, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 72 },
+      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 71 },
+      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "Ireland", dest_lat: 53.4129, dest_lng: -8.2439, flow_count: 69 },
+      { origin_country: "Canada", origin_lat: 56.1304, origin_lng: -106.3468, destination_country: "Russia", dest_lat: 61.52, dest_lng: 105.32, flow_count: 68 },
+      { origin_country: "Canada", origin_lat: 56.1304, origin_lng: -106.3468, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 67 },
+      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 67 },
+      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "Russia", dest_lat: 61.52, dest_lng: 105.32, flow_count: 67 },
+      { origin_country: "UK", origin_lat: 55.3781, origin_lng: -3.436, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 66 },
+      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "Ireland", dest_lat: 53.4129, dest_lng: -8.2439, flow_count: 66 },
+      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 65 },
+      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 65 },
+      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 63 },
+      { origin_country: "UK", origin_lat: 55.3781, origin_lng: -3.436, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 63 },
+      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "Canada", dest_lat: 56.1304, dest_lng: -106.3468, flow_count: 63 },
+      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "South Africa", dest_lat: -30.5595, dest_lng: 22.9375, flow_count: 63 },
+      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "USA", dest_lat: 37.0902, dest_lng: -95.7129, flow_count: 63 },
+      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 63 },
+      { origin_country: "South Africa", origin_lat: -30.5595, origin_lng: 22.9375, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 63 },
+      { origin_country: "South Africa", origin_lat: -30.5595, origin_lng: 22.9375, destination_country: "Ireland", dest_lat: 53.4129, dest_lng: -8.2439, flow_count: 62 },
+      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "Finland", dest_lat: 61.9241, dest_lng: 25.7482, flow_count: 61 },
+      { origin_country: "Finland", origin_lat: 61.9241, origin_lng: 25.7482, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 61 },
+      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "Finland", dest_lat: 61.9241, dest_lng: 25.7482, flow_count: 61 },
+      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 61 },
+      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "USA", dest_lat: 37.0902, dest_lng: -95.7129, flow_count: 61 },
+      { origin_country: "UAE", origin_lat: 23.4241, origin_lng: 53.8478, destination_country: "Finland", dest_lat: 61.9241, dest_lng: 25.7482, flow_count: 60 },
+      { origin_country: "Finland", origin_lat: 61.9241, origin_lng: 25.7482, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 60 },
+      { origin_country: "South Africa", origin_lat: -30.5595, origin_lng: 22.9375, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 60 },
+      { origin_country: "UK", origin_lat: 55.3781, origin_lng: -3.436, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 59 },
+      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 59 }
+    ];
 
-    // Parse JSON data
-    const routes = routesJSON ? JSON.parse(decodeURIComponent(routesJSON)) : [];
-    const points = pointsJSON ? JSON.parse(decodeURIComponent(pointsJSON)) : [];
-    const summary = summaryJSON ? JSON.parse(decodeURIComponent(summaryJSON)) : [];
+    // UNIVERSITIES WITH LOCATIONS (74 Unique Universities - Top 35 for clarity)
+    const universities = [
+      { university_name: "University of Stuttgart", city: "Stuttgart", country: "Germany", latitude: 48.7758, longitude: 9.1829, incoming_students: 90 },
+      { university_name: "Zayed University", city: "Abu Dhabi", country: "UAE", latitude: 24.1565, longitude: 54.4056, incoming_students: 89 },
+      { university_name: "Moscow Institute of Physics and Technology", city: "Moscow", country: "Russia", latitude: 55.6761, longitude: 37.2764, incoming_students: 87 },
+      { university_name: "Manipal Academy Dubai", city: "Dubai", country: "UAE", latitude: 25.1972, longitude: 55.2744, incoming_students: 81 },
+      { university_name: "Heriot-Watt Dubai", city: "Dubai", country: "UAE", latitude: 25.1876, longitude: 55.2719, incoming_students: 80 },
+      { university_name: "Bauman Moscow State Technical University", city: "Moscow", country: "Russia", latitude: 55.7640, longitude: 37.5857, incoming_students: 80 },
+      { university_name: "Rhodes University", city: "Grahamstown", country: "South Africa", latitude: -33.3038, longitude: 26.5225, incoming_students: 79 },
+      { university_name: "Heidelberg University", city: "Heidelberg", country: "Germany", latitude: 49.4158, longitude: 8.6714, incoming_students: 78 },
+      { university_name: "UCLA", city: "Los Angeles", country: "USA", latitude: 34.0695, longitude: -118.4432, incoming_students: 77 },
+      { university_name: "Åbo Akademi University", city: "Turku", country: "Finland", latitude: 60.4518, longitude: 22.2666, incoming_students: 76 },
+      { university_name: "Novosibirsk State University", city: "Novosibirsk", country: "Russia", latitude: 54.8464, longitude: 83.0954, incoming_students: 76 },
+      { university_name: "Khalifa University", city: "Abu Dhabi", country: "UAE", latitude: 24.1565, longitude: 54.4056, incoming_students: 75 },
+      { university_name: "University of Johannesburg", city: "Johannesburg", country: "South Africa", latitude: -26.1907, longitude: 28.0365, incoming_students: 75 },
+      { university_name: "Humboldt University", city: "Berlin", country: "Germany", latitude: 52.5200, longitude: 13.3949, incoming_students: 75 },
+      { university_name: "National University of Ireland Galway", city: "Galway", country: "Ireland", latitude: 53.2707, longitude: -9.0489, incoming_students: 74 },
+      { university_name: "University of Dubai", city: "Dubai", country: "UAE", latitude: 25.1972, longitude: 55.2744, incoming_students: 74 },
+      { university_name: "Saint Petersburg State University", city: "Saint Petersburg", country: "Russia", latitude: 59.9342, longitude: 30.3351, incoming_students: 74 },
+      { university_name: "University of KwaZulu-Natal", city: "Durban", country: "South Africa", latitude: -29.8683, longitude: 30.9789, incoming_students: 73 },
+      { university_name: "University of Oxford", city: "Oxford", country: "UK", latitude: 51.7558, longitude: -1.2543, incoming_students: 73 },
+      { university_name: "Technical University of Munich", city: "Munich", country: "Germany", latitude: 48.2646, longitude: 11.6681, incoming_students: 73 },
+      { university_name: "University of Cambridge", city: "Cambridge", country: "UK", latitude: 52.1951, longitude: 0.1313, incoming_students: 72 },
+      { university_name: "RWTH Aachen", city: "Aachen", country: "Germany", latitude: 50.7753, longitude: 6.0622, incoming_students: 72 },
+      { university_name: "Lomonosov Moscow State University", city: "Moscow", country: "Russia", latitude: 55.7386, longitude: 37.6068, incoming_students: 72 },
+      { university_name: "IIT Bombay", city: "Mumbai", country: "India", latitude: 19.1136, longitude: 72.9114, incoming_students: 71 },
+      { university_name: "University of British Columbia", city: "Vancouver", country: "Canada", latitude: 49.2827, longitude: -123.2549, incoming_students: 71 },
+      { university_name: "Harvard University", city: "Boston", country: "USA", latitude: 42.3601, longitude: -71.1138, incoming_students: 70 },
+      { university_name: "University of Birmingham", city: "Birmingham", country: "UK", latitude: 52.4515, longitude: -1.9369, incoming_students: 70 },
+      { university_name: "Universität Kaiserslautern", city: "Kaiserslautern", country: "Germany", latitude: 49.4357, longitude: 7.7697, incoming_students: 70 },
+      { university_name: "Trinity College Dublin", city: "Dublin", country: "Ireland", latitude: 53.3439, longitude: -6.2546, incoming_students: 69 },
+      { university_name: "University of Cape Town", city: "Cape Town", country: "South Africa", latitude: -33.9249, longitude: 18.4241, incoming_students: 69 },
+      { university_name: "University of Helsinki", city: "Helsinki", country: "Finland", latitude: 60.1695, longitude: 24.9354, incoming_students: 68 },
+      { university_name: "University of Toronto", city: "Toronto", country: "Canada", latitude: 43.6629, longitude: -79.3957, incoming_students: 68 },
+      { university_name: "University of Delhi", city: "Delhi", country: "India", latitude: 28.5244, longitude: 77.1855, incoming_students: 67 },
+      { university_name: "Stanford University", city: "Stanford", country: "USA", latitude: 37.4275, longitude: -122.1697, incoming_students: 67 },
+      { university_name: "University of Manchester", city: "Manchester", country: "UK", latitude: 53.4668, longitude: -2.2339, incoming_students: 67 }
+    ];
 
-    // 2. Initialize Globe
+    // ==================== GLOBE SETUP ====================
     const elem = document.getElementById('globeViz');
     const world = Globe()
       (elem)
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
       .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-      .backgroundColor('#0f172a');
+      .backgroundColor('#0f172a')
+      .width(window.innerWidth)
+      .height(window.innerHeight);
 
-    // 3. Render Arcs (Migration Routes) - GLOWING EFFECT
-    if (routes && routes.length) {
-      world
-        .arcsData(routes)
-        .arcStartLat(d => d.origin_lat)
-        .arcStartLng(d => d.origin_lng)
-        .arcEndLat(d => d.dest_lat)
-        .arcEndLng(d => d.dest_lng)
-        .arcColor(d => {
-          // Glowing color effect based on flow intensity
-          const intensity = d.flow_count / 100; // normalize
-          return intensity > 0.5 ? '#ec4899' : '#3b82f6'; // Pink (glow) or Blue
-        })
-        .arcDashLength(0.4)
-        .arcDashGap(0.2)
-        .arcDashAnimateTime(1500)
-        .arcStroke(0.6)
-        .arcOpacity(0.8)
-        .arcCurveResolution(64);
-    }
+    // ==================== RENDER ARCS (GLOWING BLUE FLOWS) ====================
+    world
+      .arcsData(migrationFlows)
+      .arcStartLat(d => d.origin_lat)
+      .arcStartLng(d => d.origin_lng)
+      .arcEndLat(d => d.dest_lat)
+      .arcEndLng(d => d.dest_lng)
+      .arcColor(() => '#3b82f6') // ALL BLUE - #3B82F6
+      .arcDashLength(0.4)
+      .arcDashGap(0.2)
+      .arcDashAnimateTime(2000) // Smooth animation
+      .arcStroke(0.8) // Thicker stroke for glow
+      .arcOpacity(0.95) // High opacity for glow effect
+      .arcCurveResolution(64) // Smooth curves
+      .arcLabel(d => `${d.origin_country} → ${d.destination_country}<br/>Students: ${d.flow_count}`);
 
-    // 4. Render Points (Universities) - GREEN DOTS
-    if (points && points.length) {
-      world
-        .pointsData(points)
-        .pointLat('latitude')
-        .pointLng('longitude')
-        .pointColor(() => '#10b981') // Emerald Green
-        .pointRadius(d => Math.min(d.incoming_students / 100, 0.5)) // Size based on student count
-        .pointAltitude(0.02)
-        .pointLabel(d => `<b>${d.university_name}</b><br/>Students: ${d.incoming_students}`);
-    }
+    // ==================== RENDER POINTS (UNIVERSITY PINS - VISIBLE CIRCLES) ====================
+    world
+      .pointsData(universities)
+      .pointLat('latitude')
+      .pointLng('longitude')
+      .pointColor(() => '#10b981') // Bright Emerald Green for visibility
+      .pointRadius(d => {
+        // Scale radius based on student count for prominence
+        const maxStudents = Math.max(...universities.map(u => u.incoming_students));
+        return (d.incoming_students / maxStudents) * 0.5 + 0.15; // Larger, more visible pins
+      })
+      .pointAltitude(0.05) // Elevated above globe surface for visibility
+      .pointLabel(d => `<b>${d.university_name}</b><br/>${d.city}, ${d.country}<br/>Incoming: ${d.incoming_students} students`)
+      .onPointHover(hoverD => {
+        elem.style.cursor = hoverD ? 'pointer' : 'auto';
+      });
 
-    // 5. Auto-Zoom to Selected Country
-    if (selectedCountry && summary && summary.length > 0) {
-      const target = summary.find(c => c.country_name === selectedCountry);
-      
-      if (target) {
-        // Smooth camera pan to country
-        world.pointOfView({
-          lat: parseFloat(target.latitude),
-          lng: parseFloat(target.longitude),
-          altitude: 1.5
-        }, 1500); // 1.5s animation
-      }
-    } else {
-      // Default: Auto-rotate
-      world.controls().autoRotate = true;
-      world.controls().autoRotateSpeed = 0.5;
-    }
+    // ==================== INTERACTIVITY ====================
+    world.controls().enableZoom = true;
+    world.controls().enablePan = true;
+    world.controls().enableRotate = true;
+    world.controls().autoRotate = true;
+    world.controls().autoRotateSpeed = 0.3;
 
-    // 6. Handle window resize
+    // ==================== RESPONSIVENESS ====================
     window.addEventListener('resize', () => {
       world.width(window.innerWidth).height(window.innerHeight);
     });
+
+    // ==================== UPDATE STATS ====================
+    document.getElementById('routeCount').textContent = migrationFlows.length;
+    document.getElementById('uniCount').textContent = universities.length;
+    document.getElementById('studentCount').textContent = migrationFlows.reduce((sum, f) => sum + f.flow_count, 0);
+
+    // ==================== INITIAL VIEW ====================
+    setTimeout(() => {
+      world.pointOfView({
+        lat: 30,
+        lng: 0,
+        altitude: 3.0
+      });
+    }, 500);
   </script>
 </body>
 </html>

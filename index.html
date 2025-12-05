@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Pathways Globe - Real Data</title>
+  <title>Student Pathways Globe - Animated Flows</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -17,40 +17,31 @@
       height: 100vh; 
       display: block;
     }
-    #info {
+    #tooltip {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
       background: rgba(15, 23, 42, 0.95);
-      padding: 15px;
+      padding: 12px 16px;
       border-radius: 8px;
       border: 1px solid #3b82f6;
-      font-size: 12px;
-      max-width: 300px;
-      backdrop-filter: blur(10px);
+      font-size: 13px;
+      color: #e0e7ff;
+      pointer-events: none;
+      z-index: 999;
+      display: none;
+      max-width: 250px;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
     }
-    #info h3 { color: #3b82f6; margin-bottom: 8px; font-size: 14px; }
-    #info p { margin: 4px 0; color: #cbd5e1; }
-    #info .stat { font-weight: bold; color: #10b981; }
   </style>
 </head>
 <body>
   <div id="globeViz"></div>
-  <div id="info">
-    <h3>🌍 Student Migration Flows</h3>
-    <p><strong>Routes:</strong> <span class="stat" id="routeCount">0</span></p>
-    <p><strong>Universities:</strong> <span class="stat" id="uniCount">0</span></p>
-    <p><strong>Total Students:</strong> <span class="stat" id="studentCount">0</span></p>
-    <p style="margin-top: 10px; font-size: 11px; color: #94a3b8;">Drag to rotate • Scroll to zoom</p>
-  </div>
+  <div id="tooltip"></div>
 
   <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
   <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
 
   <script>
-    // ==================== REAL DATA FROM CSV ====================
-    
-    // MIGRATION FLOWS (90 Unique Routes)
+    // ==================== MIGRATION FLOWS ====================
     const migrationFlows = [
       { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 72 },
       { origin_country: "India", origin_lat: 20.5937, origin_lng: 78.9629, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 72 },
@@ -84,7 +75,7 @@
       { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 59 }
     ];
 
-    // UNIVERSITIES WITH LOCATIONS (74 Unique Universities - Top 35 for clarity)
+    // UNIVERSITIES
     const universities = [
       { university_name: "University of Stuttgart", city: "Stuttgart", country: "Germany", latitude: 48.7758, longitude: 9.1829, incoming_students: 90 },
       { university_name: "Zayed University", city: "Abu Dhabi", country: "UAE", latitude: 24.1565, longitude: 54.4056, incoming_students: 89 },
@@ -125,6 +116,7 @@
 
     // ==================== GLOBE SETUP ====================
     const elem = document.getElementById('globeViz');
+    const tooltip = document.getElementById('tooltip');
     const world = Globe()
       (elem)
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
@@ -133,63 +125,178 @@
       .width(window.innerWidth)
       .height(window.innerHeight);
 
-    // ==================== RENDER ARCS (GLOWING BLUE FLOWS) ====================
+    // ==================== RENDER SEMI-TRANSPARENT LINES ====================
     world
       .arcsData(migrationFlows)
       .arcStartLat(d => d.origin_lat)
       .arcStartLng(d => d.origin_lng)
       .arcEndLat(d => d.dest_lat)
       .arcEndLng(d => d.dest_lng)
-      .arcColor(() => '#3b82f6') // ALL BLUE - #3B82F6
-      .arcDashLength(0.4)
-      .arcDashGap(0.2)
-      .arcDashAnimateTime(2000) // Smooth animation
-      .arcStroke(0.8) // Thicker stroke for glow
-      .arcOpacity(0.95) // High opacity for glow effect
-      .arcCurveResolution(64) // Smooth curves
-      .arcLabel(d => `${d.origin_country} → ${d.destination_country}<br/>Students: ${d.flow_count}`);
+      .arcColor(() => '#3b82f6') // Blue
+      .arcAltitude(0.25) // Higher arcs for nicer 3D shape
+      .arcDashLength(1)
+      .arcDashGap(0)
+      .arcStroke(1.2)
+      .arcOpacity(0.28) // More transparent so glow stands out
+      .arcCurveResolution(128)
+      .arcLabel(d => `${d.origin_country} → ${d.destination_country}<br/>Students: ${d.flow_count}`)
+      .onArcHover(hoverD => {
+        if (hoverD) {
+          world.arcsData(migrationFlows.map(d => ({
+            ...d,
+            isHovered: d === hoverD
+          })))
+          .arcOpacity(d => d.isHovered ? 0.9 : 0.08)
+          .arcStroke(d => d.isHovered ? 2.2 : 1.0);
 
-    // ==================== RENDER POINTS (UNIVERSITY PINS - VISIBLE CIRCLES) ====================
+          tooltip.innerHTML = `
+            <div><strong>${hoverD.origin_country}</strong> → <strong>${hoverD.destination_country}</strong></div>
+            <div style="margin-top: 6px; color: #10b981;">
+              <strong>${hoverD.flow_count}</strong> students
+            </div>
+          `;
+          tooltip.style.display = 'block';
+          elem.style.cursor = 'pointer';
+        } else {
+          world.arcsData(migrationFlows)
+          .arcOpacity(0.28)
+          .arcStroke(1.2);
+
+          tooltip.style.display = 'none';
+          elem.style.cursor = 'auto';
+        }
+      });
+
+    // Move tooltip
+    document.addEventListener('mousemove', (e) => {
+      if (tooltip.style.display === 'block') {
+        tooltip.style.left = (e.clientX + 15) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+      }
+    });
+
+    // ==================== RENDER UNIVERSITIES ====================
     world
       .pointsData(universities)
       .pointLat('latitude')
       .pointLng('longitude')
-      .pointColor(() => '#10b981') // Bright Emerald Green for visibility
+      .pointColor(() => '#10b981')
       .pointRadius(d => {
-        // Scale radius based on student count for prominence
         const maxStudents = Math.max(...universities.map(u => u.incoming_students));
-        return (d.incoming_students / maxStudents) * 0.5 + 0.15; // Larger, more visible pins
+        return (d.incoming_students / maxStudents) * 0.5 + 0.15;
       })
-      .pointAltitude(0.05) // Elevated above globe surface for visibility
+      .pointAltitude(0.05)
       .pointLabel(d => `<b>${d.university_name}</b><br/>${d.city}, ${d.country}<br/>Incoming: ${d.incoming_students} students`)
       .onPointHover(hoverD => {
         elem.style.cursor = hoverD ? 'pointer' : 'auto';
       });
 
-    // ==================== INTERACTIVITY ====================
+    // ==================== GLOWING PARTICLES ON LINES ====================
+    const scene = world.scene();
+    const THREE_GLOBALS = window.THREE;
+    
+    // Helper: Convert lat/lng to 3D position
+    function latLngToXYZ(lat, lng) {
+      const latRad = lat * Math.PI / 180;
+      const lngRad = lng * Math.PI / 180;
+      return {
+        x: Math.cos(latRad) * Math.cos(lngRad),
+        y: Math.cos(latRad) * Math.sin(lngRad),
+        z: Math.sin(latRad)
+      };
+    }
+
+    // Helper: Spherical interpolation
+    function slerp(p0, p1, t) {
+      const cosAngle = p0.x * p1.x + p0.y * p1.y + p0.z * p1.z;
+      const angle = Math.acos(Math.min(Math.max(cosAngle, -1), 1));
+      const sinAngle = Math.sin(angle);
+      
+      if (sinAngle < 0.001) return p0;
+      
+      const a = Math.sin((1 - t) * angle) / sinAngle;
+      const b = Math.sin(t * angle) / sinAngle;
+      
+      return {
+        x: a * p0.x + b * p1.x,
+        y: a * p0.y + b * p1.y,
+        z: a * p0.z + b * p1.z
+      };
+    }
+
+    // Create particle points (3 per route)
+    const particlePositions = [];
+    const particleColors = [];
+
+    for (let i = 0; i < migrationFlows.length * 3; i++) {
+      particlePositions.push(0, 0, 0);
+      // very bright bluish-white so it pops against dark earth
+      particleColors.push(0.85, 0.93, 1.0);
+    }
+
+    const geometry = new THREE_GLOBALS.BufferGeometry();
+    geometry.setAttribute('position', new THREE_GLOBALS.BufferAttribute(new Float32Array(particlePositions), 3));
+    geometry.setAttribute('color', new THREE_GLOBALS.BufferAttribute(new Float32Array(particleColors), 3));
+
+    const material = new THREE_GLOBALS.PointsMaterial({
+      size: 0.6,                 // much larger, clearly visible
+      sizeAttenuation: true,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE_GLOBALS.AdditiveBlending, // strong glow
+      depthWrite: false
+    });
+
+    const particles = new THREE_GLOBALS.Points(geometry, material);
+    scene.add(particles);
+
+    const posAttr = geometry.getAttribute('position');
+    const startTime = Date.now();
+
+    // Animation: slow flow (~10 seconds per full trip)
+    world.renderer().render = (function() {
+      const originalRender = world.renderer().render.bind(world.renderer());
+      return function(scene, camera) {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const posArray = posAttr.array;
+
+        for (let i = 0; i < migrationFlows.length; i++) {
+          const flow = migrationFlows[i];
+          const p0 = latLngToXYZ(flow.origin_lat, flow.origin_lng);
+          const p1 = latLngToXYZ(flow.dest_lat, flow.dest_lng);
+
+          for (let j = 0; j < 3; j++) {
+            const idx = i * 3 + j;
+            const offset = (j / 3) * 0.7;         // staggered along the line
+            const progress = (elapsed * 0.10 + offset) % 1.0; // SLOW: ~10s per cycle
+            const pos = slerp(p0, p1, progress);
+
+            // lift slightly above globe surface so it rides along the arc
+            const lift = 1.05 + 0.05 * Math.sin(progress * Math.PI);
+            posArray[idx * 3]     = pos.x * lift;
+            posArray[idx * 3 + 1] = pos.y * lift;
+            posArray[idx * 3 + 2] = pos.z * lift;
+          }
+        }
+        posAttr.needsUpdate = true;
+        return originalRender(scene, camera);
+      };
+    })();
+
+    // ==================== CONTROLS (SLOW SPIN) ====================
     world.controls().enableZoom = true;
     world.controls().enablePan = true;
     world.controls().enableRotate = true;
     world.controls().autoRotate = true;
-    world.controls().autoRotateSpeed = 0.3;
+    world.controls().autoRotateSpeed = 0.08; // slower spin
 
-    // ==================== RESPONSIVENESS ====================
     window.addEventListener('resize', () => {
       world.width(window.innerWidth).height(window.innerHeight);
     });
 
-    // ==================== UPDATE STATS ====================
-    document.getElementById('routeCount').textContent = migrationFlows.length;
-    document.getElementById('uniCount').textContent = universities.length;
-    document.getElementById('studentCount').textContent = migrationFlows.reduce((sum, f) => sum + f.flow_count, 0);
-
-    // ==================== INITIAL VIEW ====================
     setTimeout(() => {
-      world.pointOfView({
-        lat: 30,
-        lng: 0,
-        altitude: 3.0
-      });
+      world.pointOfView({ lat: 25, lng: 0, altitude: 3.0 });
     }, 500);
   </script>
 </body>

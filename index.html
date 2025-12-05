@@ -1,303 +1,544 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Pathways Globe - Animated Flows</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      background: #0f172a; 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      overflow: hidden;
-      color: #fff;
-    }
-    #globeViz { 
-      width: 100vw; 
-      height: 100vh; 
-      display: block;
-    }
-    #tooltip {
-      position: absolute;
-      background: rgba(15, 23, 42, 0.95);
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid #3b82f6;
-      font-size: 13px;
-      color: #e0e7ff;
-      pointer-events: none;
-      z-index: 999;
-      display: none;
-      max-width: 250px;
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-    }
-  </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Immigration Flows - Glowing Globe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #020617;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+        #globeViz {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 19, 51, 0.9); /* #001333 with opacity */
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 25px rgba(37, 99, 235, 0.45);
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 13px;
+            color: #e0f2fe;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+            min-width: 210px;
+            backdrop-filter: blur(8px);
+        }
+        #tooltip h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #93c5fd;
+        }
+        #tooltip .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #cbd5f5;
+        }
+        #tooltip .stat span:last-child {
+            font-weight: 600;
+            color: #fefce8;
+        }
+        #playPauseBtn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid rgba(59, 130, 246, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+            opacity: 0;
+            transform: translateY(10px) scale(0.8);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 0 20px rgba(59, 130, 246, 0.3),
+                0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        #playPauseBtn.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        #playPauseBtn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 
+                0 0 30px rgba(59, 130, 246, 0.5),
+                0 12px 40px rgba(0, 0, 0, 0.5);
+            border-color: rgba(59, 130, 246, 0.8);
+        }
+        #playPauseBtn svg {
+            width: 20px;
+            height: 20px;
+            fill: #60a5fa;
+            transition: all 0.2s ease;
+        }
+        #playPauseBtn:hover svg {
+            fill: #93c5fd;
+            transform: scale(1.1);
+        }
+        .pulse-marker {
+            width: 32px;
+            height: 32px;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+        }
+        .pulse-core,
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 999px;
+        }
+        .pulse-core {
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #60a5fa 0%, #3b82f6 45%, rgba(29, 78, 216, 0.6) 100%);
+            box-shadow:
+                0 0 10px rgba(59, 130, 246, 0.9),
+                0 0 25px rgba(37, 99, 235, 0.7);
+            animation: coreGlow 2.5s ease-in-out infinite;
+        }
+        .pulse-ring {
+            width: 24px;
+            height: 24px;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.45);
+            animation: ripple 2.8s ease-out infinite;
+        }
+        .pulse-marker::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            animation: halo 3.5s ease-out infinite;
+        }
+        @keyframes ripple {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+            70% { opacity: 0.2; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+        }
+        @keyframes halo {
+            0% { transform: scale(0.5); opacity: 0.8; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes coreGlow {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.9); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
-  <div id="globeViz"></div>
-  <div id="tooltip"></div>
+    <div id="globeViz"></div>
+    <div id="tooltip"></div>
+    <div id="playPauseBtn">
+        <svg viewBox="0 0 24 24">
+            <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+        </svg>
+    </div>
 
-  <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
+    <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
 
-  <script>
-    // ==================== MIGRATION FLOWS ====================
-    const migrationFlows = [
-      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 72 },
-      { origin_country: "India", origin_lat: 20.5937, origin_lng: 78.9629, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 72 },
-      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 71 },
-      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "Ireland", dest_lat: 53.4129, dest_lng: -8.2439, flow_count: 69 },
-      { origin_country: "Canada", origin_lat: 56.1304, origin_lng: -106.3468, destination_country: "Russia", dest_lat: 61.52, dest_lng: 105.32, flow_count: 68 },
-      { origin_country: "Canada", origin_lat: 56.1304, origin_lng: -106.3468, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 67 },
-      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 67 },
-      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "Russia", dest_lat: 61.52, dest_lng: 105.32, flow_count: 67 },
-      { origin_country: "UK", origin_lat: 55.3781, origin_lng: -3.436, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 66 },
-      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "Ireland", dest_lat: 53.4129, dest_lng: -8.2439, flow_count: 66 },
-      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 65 },
-      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 65 },
-      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 63 },
-      { origin_country: "UK", origin_lat: 55.3781, origin_lng: -3.436, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 63 },
-      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "Canada", dest_lat: 56.1304, dest_lng: -106.3468, flow_count: 63 },
-      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "South Africa", dest_lat: -30.5595, dest_lng: 22.9375, flow_count: 63 },
-      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "USA", dest_lat: 37.0902, dest_lng: -95.7129, flow_count: 63 },
-      { origin_country: "Ireland", origin_lat: 53.4129, origin_lng: -8.2439, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 63 },
-      { origin_country: "South Africa", origin_lat: -30.5595, origin_lng: 22.9375, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 63 },
-      { origin_country: "South Africa", origin_lat: -30.5595, origin_lng: 22.9375, destination_country: "Ireland", dest_lat: 53.4129, dest_lng: -8.2439, flow_count: 62 },
-      { origin_country: "Russia", origin_lat: 61.52, origin_lng: 105.32, destination_country: "Finland", dest_lat: 61.9241, dest_lng: 25.7482, flow_count: 61 },
-      { origin_country: "Finland", origin_lat: 61.9241, origin_lng: 25.7482, destination_country: "UK", dest_lat: 55.3781, dest_lng: -3.436, flow_count: 61 },
-      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "Finland", dest_lat: 61.9241, dest_lng: 25.7482, flow_count: 61 },
-      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 61 },
-      { origin_country: "Germany", origin_lat: 51.1657, origin_lng: 10.4515, destination_country: "USA", dest_lat: 37.0902, dest_lng: -95.7129, flow_count: 61 },
-      { origin_country: "UAE", origin_lat: 23.4241, origin_lng: 53.8478, destination_country: "Finland", dest_lat: 61.9241, dest_lng: 25.7482, flow_count: 60 },
-      { origin_country: "Finland", origin_lat: 61.9241, origin_lng: 25.7482, destination_country: "Germany", dest_lat: 51.1657, dest_lng: 10.4515, flow_count: 60 },
-      { origin_country: "South Africa", origin_lat: -30.5595, origin_lng: 22.9375, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 60 },
-      { origin_country: "UK", origin_lat: 55.3781, origin_lng: -3.436, destination_country: "India", dest_lat: 20.5937, dest_lng: 78.9629, flow_count: 59 },
-      { origin_country: "USA", origin_lat: 37.0902, origin_lng: -95.7129, destination_country: "UAE", dest_lat: 23.4241, dest_lng: 53.8478, flow_count: 59 }
-    ];
+    <script>
+        let animationPlaying = true;
+        let globeHovered = false;
 
-    // UNIVERSITIES
-    const universities = [
-      { university_name: "University of Stuttgart", city: "Stuttgart", country: "Germany", latitude: 48.7758, longitude: 9.1829, incoming_students: 90 },
-      { university_name: "Zayed University", city: "Abu Dhabi", country: "UAE", latitude: 24.1565, longitude: 54.4056, incoming_students: 89 },
-      { university_name: "Moscow Institute of Physics and Technology", city: "Moscow", country: "Russia", latitude: 55.6761, longitude: 37.2764, incoming_students: 87 },
-      { university_name: "Manipal Academy Dubai", city: "Dubai", country: "UAE", latitude: 25.1972, longitude: 55.2744, incoming_students: 81 },
-      { university_name: "Heriot-Watt Dubai", city: "Dubai", country: "UAE", latitude: 25.1876, longitude: 55.2719, incoming_students: 80 },
-      { university_name: "Bauman Moscow State Technical University", city: "Moscow", country: "Russia", latitude: 55.7640, longitude: 37.5857, incoming_students: 80 },
-      { university_name: "Rhodes University", city: "Grahamstown", country: "South Africa", latitude: -33.3038, longitude: 26.5225, incoming_students: 79 },
-      { university_name: "Heidelberg University", city: "Heidelberg", country: "Germany", latitude: 49.4158, longitude: 8.6714, incoming_students: 78 },
-      { university_name: "UCLA", city: "Los Angeles", country: "USA", latitude: 34.0695, longitude: -118.4432, incoming_students: 77 },
-      { university_name: "Åbo Akademi University", city: "Turku", country: "Finland", latitude: 60.4518, longitude: 22.2666, incoming_students: 76 },
-      { university_name: "Novosibirsk State University", city: "Novosibirsk", country: "Russia", latitude: 54.8464, longitude: 83.0954, incoming_students: 76 },
-      { university_name: "Khalifa University", city: "Abu Dhabi", country: "UAE", latitude: 24.1565, longitude: 54.4056, incoming_students: 75 },
-      { university_name: "University of Johannesburg", city: "Johannesburg", country: "South Africa", latitude: -26.1907, longitude: 28.0365, incoming_students: 75 },
-      { university_name: "Humboldt University", city: "Berlin", country: "Germany", latitude: 52.5200, longitude: 13.3949, incoming_students: 75 },
-      { university_name: "National University of Ireland Galway", city: "Galway", country: "Ireland", latitude: 53.2707, longitude: -9.0489, incoming_students: 74 },
-      { university_name: "University of Dubai", city: "Dubai", country: "UAE", latitude: 25.1972, longitude: 55.2744, incoming_students: 74 },
-      { university_name: "Saint Petersburg State University", city: "Saint Petersburg", country: "Russia", latitude: 59.9342, longitude: 30.3351, incoming_students: 74 },
-      { university_name: "University of KwaZulu-Natal", city: "Durban", country: "South Africa", latitude: -29.8683, longitude: 30.9789, incoming_students: 73 },
-      { university_name: "University of Oxford", city: "Oxford", country: "UK", latitude: 51.7558, longitude: -1.2543, incoming_students: 73 },
-      { university_name: "Technical University of Munich", city: "Munich", country: "Germany", latitude: 48.2646, longitude: 11.6681, incoming_students: 73 },
-      { university_name: "University of Cambridge", city: "Cambridge", country: "UK", latitude: 52.1951, longitude: 0.1313, incoming_students: 72 },
-      { university_name: "RWTH Aachen", city: "Aachen", country: "Germany", latitude: 50.7753, longitude: 6.0622, incoming_students: 72 },
-      { university_name: "Lomonosov Moscow State University", city: "Moscow", country: "Russia", latitude: 55.7386, longitude: 37.6068, incoming_students: 72 },
-      { university_name: "IIT Bombay", city: "Mumbai", country: "India", latitude: 19.1136, longitude: 72.9114, incoming_students: 71 },
-      { university_name: "University of British Columbia", city: "Vancouver", country: "Canada", latitude: 49.2827, longitude: -123.2549, incoming_students: 71 },
-      { university_name: "Harvard University", city: "Boston", country: "USA", latitude: 42.3601, longitude: -71.1138, incoming_students: 70 },
-      { university_name: "University of Birmingham", city: "Birmingham", country: "UK", latitude: 52.4515, longitude: -1.9369, incoming_students: 70 },
-      { university_name: "Universität Kaiserslautern", city: "Kaiserslautern", country: "Germany", latitude: 49.4357, longitude: 7.7697, incoming_students: 70 },
-      { university_name: "Trinity College Dublin", city: "Dublin", country: "Ireland", latitude: 53.3439, longitude: -6.2546, incoming_students: 69 },
-      { university_name: "University of Cape Town", city: "Cape Town", country: "South Africa", latitude: -33.9249, longitude: 18.4241, incoming_students: 69 },
-      { university_name: "University of Helsinki", city: "Helsinki", country: "Finland", latitude: 60.1695, longitude: 24.9354, incoming_students: 68 },
-      { university_name: "University of Toronto", city: "Toronto", country: "Canada", latitude: 43.6629, longitude: -79.3957, incoming_students: 68 },
-      { university_name: "University of Delhi", city: "Delhi", country: "India", latitude: 28.5244, longitude: 77.1855, incoming_students: 67 },
-      { university_name: "Stanford University", city: "Stanford", country: "USA", latitude: 37.4275, longitude: -122.1697, incoming_students: 67 },
-      { university_name: "University of Manchester", city: "Manchester", country: "UK", latitude: 53.4668, longitude: -2.2339, incoming_students: 67 }
-    ];
+        const countries = [
+            { name: "Germany", id: "C0003", lat: 50.042814527239116, lng: 10.544500010354179, outgoing: 531, incoming: 518, universities: 7 },
+            { name: "India", id: "C0004", lat: 21.255550026893616, lng: 77.08731174468994, outgoing: 498, incoming: 493, universities: 8 },
+            { name: "Ireland", id: "C0005", lat: 53.13461412702288, lng: -7.023814269474575, outgoing: 510, incoming: 472, universities: 7 },
+            { name: "Russia", id: "C0006", lat: 56.24751445225307, lng: 44.695000239780974, outgoing: 532, incoming: 515, universities: 7 },
+            { name: "South Africa", id: "C0007", lat: -29.886157172066824, lng: 25.580542973109655, outgoing: 493, incoming: 496, universities: 7 },
+            { name: "UAE", id: "C0008", lat: 24.96631404331752, lng: 55.02124241420201, outgoing: 451, incoming: 538, universities: 7 },
+            { name: "UK", id: "C0009", lat: 53.16440048217773, lng: -1.69706000238657, outgoing: 499, incoming: 526, universities: 5 },
+            { name: "USA", id: "C0010", lat: 39.67903709411621, lng: -92.58007526397705, outgoing: 504, incoming: 485, universities: 8 }
+        ];
 
-    // ==================== GLOBE SETUP ====================
-    const elem = document.getElementById('globeViz');
-    const tooltip = document.getElementById('tooltip');
-    const world = Globe()
-      (elem)
-      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-      .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-      .backgroundColor('#0f172a')
-      .width(window.innerWidth)
-      .height(window.innerHeight);
+        const migrationFlows = [];
+        const maxFlowsToShow = 26;
 
-    // ==================== RENDER SEMI-TRANSPARENT LINES ====================
-    world
-      .arcsData(migrationFlows)
-      .arcStartLat(d => d.origin_lat)
-      .arcStartLng(d => d.origin_lng)
-      .arcEndLat(d => d.dest_lat)
-      .arcEndLng(d => d.dest_lng)
-      .arcColor(() => '#3b82f6') // Blue
-      .arcAltitude(0.25) // Higher arcs for nicer 3D shape
-      .arcDashLength(1)
-      .arcDashGap(0)
-      .arcStroke(1.2)
-      .arcOpacity(0.28) // More transparent so glow stands out
-      .arcCurveResolution(128)
-      .arcLabel(d => `${d.origin_country} → ${d.destination_country}<br/>Students: ${d.flow_count}`)
-      .onArcHover(hoverD => {
-        if (hoverD) {
-          world.arcsData(migrationFlows.map(d => ({
-            ...d,
-            isHovered: d === hoverD
-          })))
-          .arcOpacity(d => d.isHovered ? 0.9 : 0.08)
-          .arcStroke(d => d.isHovered ? 2.2 : 1.0);
+        countries.forEach(source => {
+            countries.forEach(target => {
+                if (source.id !== target.id) {
+                    const flow_count = Math.round((source.outgoing * target.incoming) / 1000) + 18;
+                    migrationFlows.push({
+                        origin_country: source.name,
+                        origin_lat: source.lat,
+                        origin_lng: source.lng,
+                        destination_country: target.name,
+                        dest_lat: target.lat,
+                        dest_lng: target.lng,
+                        flow_count,
+                        source_outgoing: source.outgoing,
+                        target_incoming: target.incoming,
+                        source_universities: source.universities,
+                        target_universities: target.universities
+                    });
+                }
+            });
+        });
 
-          tooltip.innerHTML = `
-            <div><strong>${hoverD.origin_country}</strong> → <strong>${hoverD.destination_country}</strong></div>
-            <div style="margin-top: 6px; color: #10b981;">
-              <strong>${hoverD.flow_count}</strong> students
-            </div>
-          `;
-          tooltip.style.display = 'block';
-          elem.style.cursor = 'pointer';
-        } else {
-          world.arcsData(migrationFlows)
-          .arcOpacity(0.28)
-          .arcStroke(1.2);
+        migrationFlows.sort((a, b) => b.flow_count - a.flow_count);
+        const topFlows = migrationFlows.slice(0, maxFlowsToShow);
+        const maxFlow = Math.max(...topFlows.map(f => f.flow_count));
 
-          tooltip.style.display = 'none';
-          elem.style.cursor = 'auto';
+        const elem = document.getElementById('globeViz');
+        const tooltip = document.getElementById('tooltip');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        let activeTooltipType = null;
+
+        // Globe radius used by globe.gl (default is 100)
+        const GLOBE_RADIUS = 100;
+
+        const world = Globe()(elem)
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+            .backgroundColor('#01030b')
+            .showAtmosphere(true)
+            .atmosphereColor('#60a5fa')
+            .atmosphereAltitude(0.25)
+            .width(window.innerWidth)
+            .height(window.innerHeight);
+
+        // Arc altitude function - must match exactly for pulses to follow arcs
+        const getArcAltitude = (d) => 0.12 + (d.flow_count / maxFlow) * 0.22;
+
+        world
+            .arcsData(topFlows)
+            .arcStartLat(d => d.origin_lat)
+            .arcStartLng(d => d.origin_lng)
+            .arcEndLat(d => d.dest_lat)
+            .arcEndLng(d => d.dest_lng)
+            .arcColor(d => {
+                const intensity = d.flow_count / maxFlow;
+                const alpha = 0.15 + intensity * 0.25;
+                // Pure Blue (3B82F6) gradient based on alpha
+                return [
+                    `rgba(59, 130, 246, ${alpha})`,
+                    `rgba(59, 130, 246, ${alpha})`,
+                    `rgba(59, 130, 246, ${alpha})`
+                ];
+            })
+            .arcAltitude(getArcAltitude)
+            .arcStroke(d => 0.6 + (d.flow_count / maxFlow) * 2.0)
+            .arcCurveResolution(256)
+            .arcDashLength(1)
+            .arcDashGap(0)
+            .arcDashAnimateTime(0)
+            .onArcHover(hoverD => {
+                if (hoverD) {
+                    activeTooltipType = 'arc';
+                    world.arcsData(topFlows.map(flow => ({
+                        ...flow,
+                        isHovered: flow === hoverD
+                    })))
+                    .arcColor(d => d.isHovered ? [
+                        'rgba(248, 250, 252, 0.9)',
+                        'rgba(59, 130, 246, 0.95)',
+                        'rgba(248, 250, 252, 0.9)'
+                    ] : [
+                        'rgba(59, 130, 246, 0.1)',
+                        'rgba(59, 130, 246, 0.15)',
+                        'rgba(59, 130, 246, 0.1)'
+                    ])
+                    .arcStroke(d => d.isHovered ? 2.5 : 0.3);
+
+                    tooltip.innerHTML = `
+                        <h3>${hoverD.origin_country} → ${hoverD.destination_country}</h3>
+                        <div class="stat"><span>Students</span><span>${hoverD.flow_count}</span></div>
+                        <div class="stat"><span>Origin Outgoing</span><span>${hoverD.source_outgoing}</span></div>
+                        <div class="stat"><span>Destination Incoming</span><span>${hoverD.target_incoming}</span></div>
+                    `;
+                    tooltip.style.display = 'block';
+                    elem.style.cursor = 'pointer';
+                } else {
+                    activeTooltipType = null;
+                    world.arcsData(topFlows)
+                        .arcStroke(d => 0.6 + (d.flow_count / maxFlow) * 2.0)
+                        .arcColor(d => {
+                            const intensity = d.flow_count / maxFlow;
+                            const alpha = 0.15 + intensity * 0.25;
+                            return [
+                                `rgba(59, 130, 246, ${alpha})`,
+                                `rgba(59, 130, 246, ${alpha})`,
+                                `rgba(59, 130, 246, ${alpha})`
+                            ];
+                        });
+                    tooltip.style.display = 'none';
+                    elem.style.cursor = 'auto';
+                }
+            });
+
+        world
+            .htmlElementsData(countries)
+            .htmlLat(d => d.lat)
+            .htmlLng(d => d.lng)
+            .htmlAltitude(0.02)
+            .htmlElement(d => {
+                const el = document.createElement('div');
+                el.className = 'pulse-marker';
+                el.innerHTML = '<span class="pulse-ring"></span><span class="pulse-core"></span>';
+                el.addEventListener('mouseenter', () => {
+                    activeTooltipType = 'marker';
+                    tooltip.innerHTML = `
+                        <h3>${d.name}</h3>
+                        <div class="stat"><span>Outgoing Students</span><span>${d.outgoing}</span></div>
+                        <div class="stat"><span>Incoming Students</span><span>${d.incoming}</span></div>`;
+                    tooltip.style.display = 'block';
+                });
+                el.addEventListener('mouseleave', () => {
+                    activeTooltipType = null;
+                    tooltip.style.display = 'none';
+                });
+                return el;
+            });
+
+        const scene = world.scene();
+        const THREE_GLOBAL = window.THREE;
+
+        // Convert lat/lng to 3D position on globe surface
+        function latLngToVector3(lat, lng, radius) {
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (lng + 180) * Math.PI / 180;
+            return new THREE_GLOBAL.Vector3(
+                -radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
         }
-      });
 
-    // Move tooltip
-    document.addEventListener('mousemove', (e) => {
-      if (tooltip.style.display === 'block') {
-        tooltip.style.left = (e.clientX + 15) + 'px';
-        tooltip.style.top = (e.clientY - 10) + 'px';
-      }
-    });
-
-    // ==================== RENDER UNIVERSITIES ====================
-    world
-      .pointsData(universities)
-      .pointLat('latitude')
-      .pointLng('longitude')
-      .pointColor(() => '#10b981')
-      .pointRadius(d => {
-        const maxStudents = Math.max(...universities.map(u => u.incoming_students));
-        return (d.incoming_students / maxStudents) * 0.5 + 0.15;
-      })
-      .pointAltitude(0.05)
-      .pointLabel(d => `<b>${d.university_name}</b><br/>${d.city}, ${d.country}<br/>Incoming: ${d.incoming_students} students`)
-      .onPointHover(hoverD => {
-        elem.style.cursor = hoverD ? 'pointer' : 'auto';
-      });
-
-    // ==================== GLOWING PARTICLES ON LINES ====================
-    const scene = world.scene();
-    const THREE_GLOBALS = window.THREE;
-    
-    // Helper: Convert lat/lng to 3D position
-    function latLngToXYZ(lat, lng) {
-      const latRad = lat * Math.PI / 180;
-      const lngRad = lng * Math.PI / 180;
-      return {
-        x: Math.cos(latRad) * Math.cos(lngRad),
-        y: Math.cos(latRad) * Math.sin(lngRad),
-        z: Math.sin(latRad)
-      };
-    }
-
-    // Helper: Spherical interpolation
-    function slerp(p0, p1, t) {
-      const cosAngle = p0.x * p1.x + p0.y * p1.y + p0.z * p1.z;
-      const angle = Math.acos(Math.min(Math.max(cosAngle, -1), 1));
-      const sinAngle = Math.sin(angle);
-      
-      if (sinAngle < 0.001) return p0;
-      
-      const a = Math.sin((1 - t) * angle) / sinAngle;
-      const b = Math.sin(t * angle) / sinAngle;
-      
-      return {
-        x: a * p0.x + b * p1.x,
-        y: a * p0.y + b * p1.y,
-        z: a * p0.z + b * p1.z
-      };
-    }
-
-    // Create particle points (3 per route)
-    const particlePositions = [];
-    const particleColors = [];
-
-    for (let i = 0; i < migrationFlows.length * 3; i++) {
-      particlePositions.push(0, 0, 0);
-      // very bright bluish-white so it pops against dark earth
-      particleColors.push(0.85, 0.93, 1.0);
-    }
-
-    const geometry = new THREE_GLOBALS.BufferGeometry();
-    geometry.setAttribute('position', new THREE_GLOBALS.BufferAttribute(new Float32Array(particlePositions), 3));
-    geometry.setAttribute('color', new THREE_GLOBALS.BufferAttribute(new Float32Array(particleColors), 3));
-
-    const material = new THREE_GLOBALS.PointsMaterial({
-      size: 0.6,                 // much larger, clearly visible
-      sizeAttenuation: true,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE_GLOBALS.AdditiveBlending, // strong glow
-      depthWrite: false
-    });
-
-    const particles = new THREE_GLOBALS.Points(geometry, material);
-    scene.add(particles);
-
-    const posAttr = geometry.getAttribute('position');
-    const startTime = Date.now();
-
-    // Animation: slow flow (~10 seconds per full trip)
-    world.renderer().render = (function() {
-      const originalRender = world.renderer().render.bind(world.renderer());
-      return function(scene, camera) {
-        const elapsed = (Date.now() - startTime) / 1000;
-        const posArray = posAttr.array;
-
-        for (let i = 0; i < migrationFlows.length; i++) {
-          const flow = migrationFlows[i];
-          const p0 = latLngToXYZ(flow.origin_lat, flow.origin_lng);
-          const p1 = latLngToXYZ(flow.dest_lat, flow.dest_lng);
-
-          for (let j = 0; j < 3; j++) {
-            const idx = i * 3 + j;
-            const offset = (j / 3) * 0.7;         // staggered along the line
-            const progress = (elapsed * 0.10 + offset) % 1.0; // SLOW: ~10s per cycle
-            const pos = slerp(p0, p1, progress);
-
-            // lift slightly above globe surface so it rides along the arc
-            const lift = 1.05 + 0.05 * Math.sin(progress * Math.PI);
-            posArray[idx * 3]     = pos.x * lift;
-            posArray[idx * 3 + 1] = pos.y * lift;
-            posArray[idx * 3 + 2] = pos.z * lift;
-          }
+        // Calculate point along the arc at given progress (0-1)
+        function getArcPoint(flow, progress, arcAltitude) {
+            const startVec = latLngToVector3(flow.origin_lat, flow.origin_lng, GLOBE_RADIUS);
+            const endVec = latLngToVector3(flow.dest_lat, flow.dest_lng, GLOBE_RADIUS);
+            
+            // Calculate the midpoint and lift it for the arc
+            const midVec = new THREE_GLOBAL.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);
+            const midLength = midVec.length();
+            const arcHeight = GLOBE_RADIUS * (1 + arcAltitude);
+            midVec.normalize().multiplyScalar(arcHeight);
+            
+            // Quadratic bezier: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+            const t = progress;
+            const oneMinusT = 1 - t;
+            
+            const point = new THREE_GLOBAL.Vector3();
+            point.addScaledVector(startVec, oneMinusT * oneMinusT);
+            point.addScaledVector(midVec, 2 * oneMinusT * t);
+            point.addScaledVector(endVec, t * t);
+            
+            return point;
         }
-        posAttr.needsUpdate = true;
-        return originalRender(scene, camera);
-      };
-    })();
 
-    // ==================== CONTROLS (SLOW SPIN) ====================
-    world.controls().enableZoom = true;
-    world.controls().enablePan = true;
-    world.controls().enableRotate = true;
-    world.controls().autoRotate = true;
-    world.controls().autoRotateSpeed = 0.08; // slower spin
+        // Create pulse particles for each flow
+        const pulseData = [];
+        topFlows.forEach(flow => {
+            // More pulses for higher flow counts
+            const pulseCount = Math.ceil((flow.flow_count / maxFlow) * 4) + 2;
+            for (let i = 0; i < pulseCount; i++) {
+                pulseData.push({
+                    flow,
+                    offset: i / pulseCount,
+                    speed: 0.08 + Math.random() * 0.04,
+                    intensity: flow.flow_count / maxFlow
+                });
+            }
+        });
 
-    window.addEventListener('resize', () => {
-      world.width(window.innerWidth).height(window.innerHeight);
-    });
+        // Create geometry for all pulses
+        const pulsePositions = new Float32Array(pulseData.length * 3);
+        const pulseColors = new Float32Array(pulseData.length * 3);
+        const pulseSizes = new Float32Array(pulseData.length);
 
-    setTimeout(() => {
-      world.pointOfView({ lat: 25, lng: 0, altitude: 3.0 });
-    }, 500);
-  </script>
+        const pulseGeometry = new THREE_GLOBAL.BufferGeometry();
+        pulseGeometry.setAttribute('position', new THREE_GLOBAL.BufferAttribute(pulsePositions, 3));
+        pulseGeometry.setAttribute('color', new THREE_GLOBAL.BufferAttribute(pulseColors, 3));
+        pulseGeometry.setAttribute('size', new THREE_GLOBAL.BufferAttribute(pulseSizes, 1));
+
+        // Custom shader material for glowing pulses
+        const pulseMaterial = new THREE_GLOBAL.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 }
+            },
+            vertexShader: `
+                attribute float size;
+                attribute vec3 color;
+                varying vec3 vColor;
+                varying float vSize;
+                void main() {
+                    vColor = color;
+                    vSize = size;
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_PointSize = size * (300.0 / -mvPosition.z);
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vColor;
+                varying float vSize;
+                void main() {
+                    float dist = length(gl_PointCoord - vec2(0.5));
+                    if (dist > 0.5) discard;
+                    
+                    // Glowing effect - bright center, fading edges
+                    float glow = 1.0 - (dist * 2.0);
+                    glow = pow(glow, 1.5);
+                    
+                    // Add extra bright core
+                    float core = 1.0 - smoothstep(0.0, 0.15, dist);
+                    
+                    vec3 finalColor = vColor * glow + vec3(1.0) * core * 0.5;
+                    float alpha = glow * 0.9 + core * 0.1;
+                    
+                    gl_FragColor = vec4(finalColor, alpha);
+                }
+            `,
+            transparent: true,
+            blending: THREE_GLOBAL.AdditiveBlending,
+            depthWrite: false
+        });
+
+        const pulsePoints = new THREE_GLOBAL.Points(pulseGeometry, pulseMaterial);
+        scene.add(pulsePoints);
+
+        // Animation timing
+        let startTime = Date.now();
+        let lastTime = startTime;
+
+        // Override render to update pulse positions
+        const originalRender = world.renderer().render.bind(world.renderer());
+        world.renderer().render = function(sceneArg, camera) {
+            const now = Date.now();
+            const elapsed = (now - startTime) / 1000;
+            
+            if (animationPlaying) {
+                const positions = pulseGeometry.getAttribute('position').array;
+                const colors = pulseGeometry.getAttribute('color').array;
+                const sizes = pulseGeometry.getAttribute('size').array;
+
+                pulseData.forEach((pulse, idx) => {
+                    // Calculate progress along arc (0 to 1)
+                    let progress = ((elapsed * pulse.speed) + pulse.offset) % 1.0;
+                    
+                    // Get arc altitude for this flow
+                    const arcAlt = getArcAltitude(pulse.flow);
+                    
+                    // Get position on arc
+                    const pos = getArcPoint(pulse.flow, progress, arcAlt);
+                    
+                    positions[idx * 3] = pos.x;
+                    positions[idx * 3 + 1] = pos.y;
+                    positions[idx * 3 + 2] = pos.z;
+                    
+                    // Pulsing glow effect
+                    const glowPulse = 0.7 + 0.3 * Math.sin(elapsed * 5 + idx * 0.5);
+                    const brightness = pulse.intensity * glowPulse;
+                    
+                    // Blue color (3B82F6) based on intensity
+                    // R: 59/255 ≈ 0.23, G: 130/255 ≈ 0.51, B: 246/255 ≈ 0.96
+                    colors[idx * 3] = 0.23 + brightness * 0.2;      // R
+                    colors[idx * 3 + 1] = 0.51 + brightness * 0.3;   // G
+                    colors[idx * 3 + 2] = 0.96;                       // B
+                    
+                    // Size based on flow intensity with pulsing
+                    sizes[idx] = (2.0 + pulse.intensity * 3.0) * glowPulse;
+                });
+
+                pulseGeometry.getAttribute('position').needsUpdate = true;
+                pulseGeometry.getAttribute('color').needsUpdate = true;
+                pulseGeometry.getAttribute('size').needsUpdate = true;
+            }
+            
+            originalRender(sceneArg, camera);
+        };
+
+        // Globe controls
+        world.controls().autoRotate = true;
+        world.controls().autoRotateSpeed = 0.3;
+        world.controls().enablePan = true;
+        world.controls().enableZoom = true;
+        world.controls().minDistance = 150;
+        world.controls().maxDistance = 800;
+
+        // Tooltip following mouse
+        document.addEventListener('mousemove', (event) => {
+            if (tooltip.style.display === 'block' && activeTooltipType) {
+                tooltip.style.left = `${event.clientX + 14}px`;
+                tooltip.style.top = `${event.clientY - 10}px`;
+            }
+        });
+
+        // Show/hide play button on hover
+        elem.addEventListener('mouseenter', () => {
+            globeHovered = true;
+            playPauseBtn.classList.add('visible');
+        });
+
+        elem.addEventListener('mouseleave', () => {
+            globeHovered = false;
+            setTimeout(() => {
+                if (!globeHovered) {
+                    playPauseBtn.classList.remove('visible');
+                }
+            }, 300);
+        });
+
+        // Play/Pause button
+        playPauseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            animationPlaying = !animationPlaying;
+            
+            const icon = playPauseBtn.querySelector('svg');
+            if (animationPlaying) {
+                // Show pause icon (two bars)
+                icon.innerHTML = '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+                world.controls().autoRotate = true;
+            } else {
+                // Show play icon (triangle)
+                icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                world.controls().autoRotate = false;
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            world.width(window.innerWidth).height(window.innerHeight);
+        });
+
+        // Initial camera position
+        setTimeout(() => {
+            world.pointOfView({ lat: 20, lng: 20, altitude: 2.5 }, 1500);
+        }, 500);
+    </script>
 </body>
 </html>

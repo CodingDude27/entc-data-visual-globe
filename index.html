@@ -8,29 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            background: #020617;
-            color: #f8fafc;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            position: relative;
-        }
-        #globeViz {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Space Grotesk', sans-serif; background: #020617; color: #f8fafc; overflow: hidden; height: 100vh; width: 100vw; position: relative; }
+        #globeViz { width: 100vw; height: 100vh; display: block; }
         #tooltip {
             position: absolute;
-            background: rgba(0, 19, 51, 0.9); /* #001333 with opacity */
-            border: 1px solid rgba(59, 130, 246, 0.5);
+            background: rgba(0, 19, 51, 0.95); /* Slightly more opaque */
+            border: 1px solid rgba(59, 130, 246, 0.6);
             box-shadow: 0 0 25px rgba(37, 99, 235, 0.45);
             border-radius: 12px;
             padding: 14px 18px;
@@ -39,132 +23,41 @@
             pointer-events: none;
             z-index: 10;
             display: none;
-            min-width: 210px;
-            backdrop-filter: blur(8px);
+            min-width: 220px;
+            backdrop-filter: blur(12px);
+            transition: opacity 0.15s ease;
         }
-        #tooltip h3 {
-            font-size: 15px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #93c5fd;
-        }
-        #tooltip .stat {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            font-size: 12px;
-            color: #cbd5f5;
-        }
-        #tooltip .stat span:last-child {
-            font-weight: 600;
-            color: #fefce8;
-        }
+        #tooltip h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #93c5fd; border-bottom: 1px solid rgba(59, 130, 246, 0.3); padding-bottom: 4px; }
+        #tooltip .stat { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; color: #cbd5f5; }
+        #tooltip .stat span:last-child { font-weight: 600; color: #fefce8; }
+        
         #playPauseBtn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(15, 23, 42, 0.85);
+            position: absolute; bottom: 30px; right: 30px; width: 50px; height: 50px;
+            border-radius: 50%; background: rgba(15, 23, 42, 0.9);
             border: 2px solid rgba(59, 130, 246, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 20;
-            opacity: 0;
-            transform: translateY(10px) scale(0.8);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 20; opacity: 0;
+            transform: translateY(10px) scale(0.9);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(10px);
-            box-shadow: 
-                0 0 20px rgba(59, 130, 246, 0.3),
-                0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
-        #playPauseBtn.visible {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-        #playPauseBtn:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 
-                0 0 30px rgba(59, 130, 246, 0.5),
-                0 12px 40px rgba(0, 0, 0, 0.5);
-            border-color: rgba(59, 130, 246, 0.8);
-        }
-        #playPauseBtn svg {
-            width: 20px;
-            height: 20px;
-            fill: #60a5fa;
-            transition: all 0.2s ease;
-        }
-        #playPauseBtn:hover svg {
-            fill: #93c5fd;
-            transform: scale(1.1);
-        }
-        .pulse-marker {
-            width: 32px;
-            height: 32px;
-            position: absolute;
-            transform: translate(-50%, -50%);
-            pointer-events: auto;
-        }
-        .pulse-core,
-        .pulse-ring {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border-radius: 999px;
-        }
-        .pulse-core {
-            width: 10px;
-            height: 10px;
-            background: radial-gradient(circle, #60a5fa 0%, #3b82f6 45%, rgba(29, 78, 216, 0.6) 100%);
-            box-shadow:
-                0 0 10px rgba(59, 130, 246, 0.9),
-                0 0 25px rgba(37, 99, 235, 0.7);
-            animation: coreGlow 2.5s ease-in-out infinite;
-        }
-        .pulse-ring {
-            width: 24px;
-            height: 24px;
-            border: 1px solid rgba(59, 130, 246, 0.4);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.45);
-            animation: ripple 2.8s ease-out infinite;
-        }
-        .pulse-marker::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1px solid rgba(59, 130, 246, 0.35);
-            animation: halo 3.5s ease-out infinite;
-        }
-        @keyframes ripple {
-            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
-            70% { opacity: 0.2; }
-            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
-        }
-        @keyframes halo {
-            0% { transform: scale(0.5); opacity: 0.8; }
-            100% { transform: scale(1.6); opacity: 0; }
-        }
-        @keyframes coreGlow {
-            0%, 100% { transform: translate(-50%, -50%) scale(0.9); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-        }
+        #playPauseBtn.visible { opacity: 1; transform: translateY(0) scale(1); }
+        #playPauseBtn:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); border-color: #93c5fd; }
+        #playPauseBtn svg { width: 20px; height: 20px; fill: #60a5fa; transition: fill 0.2s; }
+        #playPauseBtn:hover svg { fill: #ffffff; }
+
+        .pulse-marker { width: 32px; height: 32px; position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
+        .pulse-core, .pulse-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 999px; }
+        .pulse-core { width: 8px; height: 8px; background: #60a5fa; box-shadow: 0 0 12px #3b82f6; }
+        .pulse-ring { width: 24px; height: 24px; border: 1px solid rgba(96, 165, 250, 0.6); animation: ripple 2s ease-out infinite; }
+        @keyframes ripple { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
     <div id="globeViz"></div>
     <div id="tooltip"></div>
-    <div id="playPauseBtn">
-        <svg viewBox="0 0 24 24">
-            <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
-        </svg>
-    </div>
+    <div id="playPauseBtn"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></div>
 
     <script src="https://unpkg.com/three@0.146.0/build/three.min.js"></script>
     <script src="https://unpkg.com/globe.gl@2.26.6/dist/globe.gl.min.js"></script>
@@ -172,373 +65,161 @@
     <script>
         let animationPlaying = true;
         let globeHovered = false;
+        let lastHoveredArc = null;
 
         const countries = [
-            { name: "Germany", id: "C0003", lat: 50.042814527239116, lng: 10.544500010354179, outgoing: 531, incoming: 518, universities: 7 },
-            { name: "India", id: "C0004", lat: 21.255550026893616, lng: 77.08731174468994, outgoing: 498, incoming: 493, universities: 8 },
-            { name: "Ireland", id: "C0005", lat: 53.13461412702288, lng: -7.023814269474575, outgoing: 510, incoming: 472, universities: 7 },
-            { name: "Russia", id: "C0006", lat: 56.24751445225307, lng: 44.695000239780974, outgoing: 532, incoming: 515, universities: 7 },
-            { name: "South Africa", id: "C0007", lat: -29.886157172066824, lng: 25.580542973109655, outgoing: 493, incoming: 496, universities: 7 },
-            { name: "UAE", id: "C0008", lat: 24.96631404331752, lng: 55.02124241420201, outgoing: 451, incoming: 538, universities: 7 },
-            { name: "UK", id: "C0009", lat: 53.16440048217773, lng: -1.69706000238657, outgoing: 499, incoming: 526, universities: 5 },
-            { name: "USA", id: "C0010", lat: 39.67903709411621, lng: -92.58007526397705, outgoing: 504, incoming: 485, universities: 8 }
+            { name: "Germany", id: "C0003", lat: 50.04, lng: 10.54, outgoing: 531, incoming: 518 },
+            { name: "India", id: "C0004", lat: 21.25, lng: 77.08, outgoing: 498, incoming: 493 },
+            { name: "Ireland", id: "C0005", lat: 53.13, lng: -7.02, outgoing: 510, incoming: 472 },
+            { name: "Russia", id: "C0006", lat: 56.24, lng: 44.69, outgoing: 532, incoming: 515 },
+            { name: "South Africa", id: "C0007", lat: -29.88, lng: 25.58, outgoing: 493, incoming: 496 },
+            { name: "UAE", id: "C0008", lat: 24.96, lng: 55.02, outgoing: 451, incoming: 538 },
+            { name: "UK", id: "C0009", lat: 53.16, lng: -1.69, outgoing: 499, incoming: 526 },
+            { name: "USA", id: "C0010", lat: 39.67, lng: -92.58, outgoing: 504, incoming: 485 }
         ];
 
         const migrationFlows = [];
-        const maxFlowsToShow = 26;
-
         countries.forEach(source => {
             countries.forEach(target => {
                 if (source.id !== target.id) {
-                    const flow_count = Math.round((source.outgoing * target.incoming) / 1000) + 18;
                     migrationFlows.push({
-                        origin_country: source.name,
-                        origin_lat: source.lat,
-                        origin_lng: source.lng,
-                        destination_country: target.name,
-                        dest_lat: target.lat,
-                        dest_lng: target.lng,
-                        flow_count,
-                        source_outgoing: source.outgoing,
-                        target_incoming: target.incoming,
-                        source_universities: source.universities,
-                        target_universities: target.universities
+                        origin_country: source.name, origin_lat: source.lat, origin_lng: source.lng,
+                        destination_country: target.name, dest_lat: target.lat, dest_lng: target.lng,
+                        flow_count: Math.round((source.outgoing * target.incoming) / 1000) + 18,
+                        source_outgoing: source.outgoing, target_incoming: target.incoming
                     });
                 }
             });
         });
 
         migrationFlows.sort((a, b) => b.flow_count - a.flow_count);
-        const topFlows = migrationFlows.slice(0, maxFlowsToShow);
+        const topFlows = migrationFlows.slice(0, 30); // Top 30 flows
         const maxFlow = Math.max(...topFlows.map(f => f.flow_count));
 
         const elem = document.getElementById('globeViz');
         const tooltip = document.getElementById('tooltip');
         const playPauseBtn = document.getElementById('playPauseBtn');
-        let activeTooltipType = null;
-
-        // Globe radius used by globe.gl (default is 100)
-        const GLOBE_RADIUS = 100;
 
         const world = Globe()(elem)
             .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
             .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
-            .backgroundColor('#01030b')
+            .backgroundColor('#020617')
             .showAtmosphere(true)
-            .atmosphereColor('#60a5fa')
-            .atmosphereAltitude(0.25)
+            .atmosphereColor('#3b82f6')
+            .atmosphereAltitude(0.2)
             .width(window.innerWidth)
             .height(window.innerHeight);
 
-        // Arc altitude function - must match exactly for pulses to follow arcs
-        const getArcAltitude = (d) => 0.12 + (d.flow_count / maxFlow) * 0.22;
-
+        // --- ARCS CONFIGURATION ---
         world
             .arcsData(topFlows)
             .arcStartLat(d => d.origin_lat)
             .arcStartLng(d => d.origin_lng)
             .arcEndLat(d => d.dest_lat)
             .arcEndLng(d => d.dest_lng)
-            .arcColor(d => {
-                const intensity = d.flow_count / maxFlow;
-                const alpha = 0.15 + intensity * 0.25;
-                // Pure Blue (3B82F6) gradient based on alpha
-                return [
-                    `rgba(59, 130, 246, ${alpha})`,
-                    `rgba(59, 130, 246, ${alpha})`,
-                    `rgba(59, 130, 246, ${alpha})`
-                ];
-            })
-            .arcAltitude(getArcAltitude)
-            .arcStroke(d => 0.6 + (d.flow_count / maxFlow) * 2.0)
-            .arcCurveResolution(256)
-            .arcDashLength(1)
-            .arcDashGap(0)
-            .arcDashAnimateTime(0)
+            .arcAltitude(d => 0.1 + (d.flow_count / maxFlow) * 0.3)
+            // Default color: Transparent Blue
+            .arcColor(d => [
+                'rgba(59, 130, 246, 0.2)', 
+                'rgba(59, 130, 246, 0.5)', 
+                'rgba(59, 130, 246, 0.2)'
+            ])
+            // FIXED STROKE: Thicker by default, NO change on hover to prevent glitch
+            .arcStroke(d => 1.0 + (d.flow_count / maxFlow) * 1.5) 
+            .arcDashLength(0.9)
+            .arcDashGap(0.1)
+            .arcDashAnimateTime(2000)
             .onArcHover(hoverD => {
-                if (hoverD) {
-                    activeTooltipType = 'arc';
-                    world.arcsData(topFlows.map(flow => ({
-                        ...flow,
-                        isHovered: flow === hoverD
-                    })))
-                    .arcColor(d => d.isHovered ? [
-                        'rgba(248, 250, 252, 0.9)',
-                        'rgba(59, 130, 246, 0.95)',
-                        'rgba(248, 250, 252, 0.9)'
-                    ] : [
-                        'rgba(59, 130, 246, 0.1)',
-                        'rgba(59, 130, 246, 0.15)',
-                        'rgba(59, 130, 246, 0.1)'
-                    ])
-                    .arcStroke(d => d.isHovered ? 2.5 : 0.3);
+                // Debounce check
+                if (hoverD === lastHoveredArc) return;
+                lastHoveredArc = hoverD;
 
+                if (hoverD) {
+                    // HOVER STATE: Only change COLOR, not Geometry/Stroke
+                    world.arcColor(d => {
+                        const isHovered = d === hoverD;
+                        // Hovered: Bright White/Blue Opaque
+                        // Others: Very faint
+                        return isHovered 
+                            ? ['rgba(255, 255, 255, 0.9)', 'rgba(96, 165, 250, 1.0)', 'rgba(255, 255, 255, 0.9)']
+                            : ['rgba(59, 130, 246, 0.05)', 'rgba(59, 130, 246, 0.1)', 'rgba(59, 130, 246, 0.05)'];
+                    });
+
+                    // Update Tooltip
                     tooltip.innerHTML = `
-                        <h3>${hoverD.origin_country} → ${hoverD.destination_country}</h3>
-                        <div class="stat"><span>Students</span><span>${hoverD.flow_count}</span></div>
-                        <div class="stat"><span>Origin Outgoing</span><span>${hoverD.source_outgoing}</span></div>
-                        <div class="stat"><span>Destination Incoming</span><span>${hoverD.target_incoming}</span></div>
+                        <h3>${hoverD.origin_country} ➔ ${hoverD.destination_country}</h3>
+                        <div class="stat"><span>Flow Volume</span><span>${hoverD.flow_count}</span></div>
+                        <div class="stat"><span>${hoverD.origin_country} Out</span><span>${hoverD.source_outgoing}</span></div>
+                        <div class="stat"><span>${hoverD.destination_country} In</span><span>${hoverD.target_incoming}</span></div>
                     `;
                     tooltip.style.display = 'block';
                     elem.style.cursor = 'pointer';
+                    world.controls().autoRotate = false; // Pause rotation for reading
                 } else {
-                    activeTooltipType = null;
-                    world.arcsData(topFlows)
-                        .arcStroke(d => 0.6 + (d.flow_count / maxFlow) * 2.0)
-                        .arcColor(d => {
-                            const intensity = d.flow_count / maxFlow;
-                            const alpha = 0.15 + intensity * 0.25;
-                            return [
-                                `rgba(59, 130, 246, ${alpha})`,
-                                `rgba(59, 130, 246, ${alpha})`,
-                                `rgba(59, 130, 246, ${alpha})`
-                            ];
-                        });
+                    // RESET STATE
+                    world.arcColor(d => [
+                        'rgba(59, 130, 246, 0.2)', 
+                        'rgba(59, 130, 246, 0.5)', 
+                        'rgba(59, 130, 246, 0.2)'
+                    ]);
+                    
                     tooltip.style.display = 'none';
-                    elem.style.cursor = 'auto';
+                    elem.style.cursor = 'default';
+                    if(animationPlaying) world.controls().autoRotate = true;
                 }
             });
 
+        // --- MARKERS ---
         world
             .htmlElementsData(countries)
             .htmlLat(d => d.lat)
             .htmlLng(d => d.lng)
-            .htmlAltitude(0.02)
+            .htmlAltitude(0.01)
             .htmlElement(d => {
                 const el = document.createElement('div');
                 el.className = 'pulse-marker';
                 el.innerHTML = '<span class="pulse-ring"></span><span class="pulse-core"></span>';
                 el.addEventListener('mouseenter', () => {
-                    activeTooltipType = 'marker';
-                    tooltip.innerHTML = `
-                        <h3>${d.name}</h3>
-                        <div class="stat"><span>Outgoing Students</span><span>${d.outgoing}</span></div>
-                        <div class="stat"><span>Incoming Students</span><span>${d.incoming}</span></div>`;
+                    tooltip.innerHTML = `<h3>${d.name}</h3><div class="stat"><span>Outgoing</span><span>${d.outgoing}</span></div><div class="stat"><span>Incoming</span><span>${d.incoming}</span></div>`;
                     tooltip.style.display = 'block';
                 });
                 el.addEventListener('mouseleave', () => {
-                    activeTooltipType = null;
                     tooltip.style.display = 'none';
                 });
                 return el;
             });
 
-        const scene = world.scene();
-        const THREE_GLOBAL = window.THREE;
-
-        // Convert lat/lng to 3D position on globe surface
-        function latLngToVector3(lat, lng, radius) {
-            const phi = (90 - lat) * Math.PI / 180;
-            const theta = (lng + 180) * Math.PI / 180;
-            return new THREE_GLOBAL.Vector3(
-                -radius * Math.sin(phi) * Math.cos(theta),
-                radius * Math.cos(phi),
-                radius * Math.sin(phi) * Math.sin(theta)
-            );
-        }
-
-        // Calculate point along the arc at given progress (0-1)
-        function getArcPoint(flow, progress, arcAltitude) {
-            const startVec = latLngToVector3(flow.origin_lat, flow.origin_lng, GLOBE_RADIUS);
-            const endVec = latLngToVector3(flow.dest_lat, flow.dest_lng, GLOBE_RADIUS);
-            
-            // Calculate the midpoint and lift it for the arc
-            const midVec = new THREE_GLOBAL.Vector3().addVectors(startVec, endVec).multiplyScalar(0.5);
-            const midLength = midVec.length();
-            const arcHeight = GLOBE_RADIUS * (1 + arcAltitude);
-            midVec.normalize().multiplyScalar(arcHeight);
-            
-            // Quadratic bezier: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
-            const t = progress;
-            const oneMinusT = 1 - t;
-            
-            const point = new THREE_GLOBAL.Vector3();
-            point.addScaledVector(startVec, oneMinusT * oneMinusT);
-            point.addScaledVector(midVec, 2 * oneMinusT * t);
-            point.addScaledVector(endVec, t * t);
-            
-            return point;
-        }
-
-        // Create pulse particles for each flow
-        const pulseData = [];
-        topFlows.forEach(flow => {
-            // More pulses for higher flow counts
-            const pulseCount = Math.ceil((flow.flow_count / maxFlow) * 4) + 2;
-            for (let i = 0; i < pulseCount; i++) {
-                pulseData.push({
-                    flow,
-                    offset: i / pulseCount,
-                    speed: 0.08 + Math.random() * 0.04,
-                    intensity: flow.flow_count / maxFlow
-                });
-            }
-        });
-
-        // Create geometry for all pulses
-        const pulsePositions = new Float32Array(pulseData.length * 3);
-        const pulseColors = new Float32Array(pulseData.length * 3);
-        const pulseSizes = new Float32Array(pulseData.length);
-
-        const pulseGeometry = new THREE_GLOBAL.BufferGeometry();
-        pulseGeometry.setAttribute('position', new THREE_GLOBAL.BufferAttribute(pulsePositions, 3));
-        pulseGeometry.setAttribute('color', new THREE_GLOBAL.BufferAttribute(pulseColors, 3));
-        pulseGeometry.setAttribute('size', new THREE_GLOBAL.BufferAttribute(pulseSizes, 1));
-
-        // Custom shader material for glowing pulses
-        const pulseMaterial = new THREE_GLOBAL.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 }
-            },
-            vertexShader: `
-                attribute float size;
-                attribute vec3 color;
-                varying vec3 vColor;
-                varying float vSize;
-                void main() {
-                    vColor = color;
-                    vSize = size;
-                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                    gl_PointSize = size * (300.0 / -mvPosition.z);
-                    gl_Position = projectionMatrix * mvPosition;
-                }
-            `,
-            fragmentShader: `
-                varying vec3 vColor;
-                varying float vSize;
-                void main() {
-                    float dist = length(gl_PointCoord - vec2(0.5));
-                    if (dist > 0.5) discard;
-                    
-                    // Glowing effect - bright center, fading edges
-                    float glow = 1.0 - (dist * 2.0);
-                    glow = pow(glow, 1.5);
-                    
-                    // Add extra bright core
-                    float core = 1.0 - smoothstep(0.0, 0.15, dist);
-                    
-                    vec3 finalColor = vColor * glow + vec3(1.0) * core * 0.5;
-                    float alpha = glow * 0.9 + core * 0.1;
-                    
-                    gl_FragColor = vec4(finalColor, alpha);
-                }
-            `,
-            transparent: true,
-            blending: THREE_GLOBAL.AdditiveBlending,
-            depthWrite: false
-        });
-
-        const pulsePoints = new THREE_GLOBAL.Points(pulseGeometry, pulseMaterial);
-        scene.add(pulsePoints);
-
-        // Animation timing
-        let startTime = Date.now();
-        let lastTime = startTime;
-
-        // Override render to update pulse positions
-        const originalRender = world.renderer().render.bind(world.renderer());
-        world.renderer().render = function(sceneArg, camera) {
-            const now = Date.now();
-            const elapsed = (now - startTime) / 1000;
-            
-            if (animationPlaying) {
-                const positions = pulseGeometry.getAttribute('position').array;
-                const colors = pulseGeometry.getAttribute('color').array;
-                const sizes = pulseGeometry.getAttribute('size').array;
-
-                pulseData.forEach((pulse, idx) => {
-                    // Calculate progress along arc (0 to 1)
-                    let progress = ((elapsed * pulse.speed) + pulse.offset) % 1.0;
-                    
-                    // Get arc altitude for this flow
-                    const arcAlt = getArcAltitude(pulse.flow);
-                    
-                    // Get position on arc
-                    const pos = getArcPoint(pulse.flow, progress, arcAlt);
-                    
-                    positions[idx * 3] = pos.x;
-                    positions[idx * 3 + 1] = pos.y;
-                    positions[idx * 3 + 2] = pos.z;
-                    
-                    // Pulsing glow effect
-                    const glowPulse = 0.7 + 0.3 * Math.sin(elapsed * 5 + idx * 0.5);
-                    const brightness = pulse.intensity * glowPulse;
-                    
-                    // Blue color (3B82F6) based on intensity
-                    // R: 59/255 ≈ 0.23, G: 130/255 ≈ 0.51, B: 246/255 ≈ 0.96
-                    colors[idx * 3] = 0.23 + brightness * 0.2;      // R
-                    colors[idx * 3 + 1] = 0.51 + brightness * 0.3;   // G
-                    colors[idx * 3 + 2] = 0.96;                       // B
-                    
-                    // Size based on flow intensity with pulsing
-                    sizes[idx] = (2.0 + pulse.intensity * 3.0) * glowPulse;
-                });
-
-                pulseGeometry.getAttribute('position').needsUpdate = true;
-                pulseGeometry.getAttribute('color').needsUpdate = true;
-                pulseGeometry.getAttribute('size').needsUpdate = true;
-            }
-            
-            originalRender(sceneArg, camera);
-        };
-
-        // Globe controls
+        // --- CONTROLS & EVENTS ---
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 0.3;
-        world.controls().enablePan = true;
-        world.controls().enableZoom = true;
-        world.controls().minDistance = 150;
-        world.controls().maxDistance = 800;
-
-        // Tooltip following mouse
-        document.addEventListener('mousemove', (event) => {
-            if (tooltip.style.display === 'block' && activeTooltipType) {
-                tooltip.style.left = `${event.clientX + 14}px`;
-                tooltip.style.top = `${event.clientY - 10}px`;
+        world.controls().autoRotateSpeed = 0.5;
+        
+        // Tooltip follows mouse
+        document.addEventListener('mousemove', (e) => {
+            if (tooltip.style.display === 'block') {
+                tooltip.style.left = `${e.clientX + 15}px`;
+                tooltip.style.top = `${e.clientY - 15}px`;
             }
         });
 
-        // Show/hide play button on hover
-        elem.addEventListener('mouseenter', () => {
-            globeHovered = true;
-            playPauseBtn.classList.add('visible');
-        });
-
+        // Play/Pause UI logic
+        elem.addEventListener('mouseenter', () => playPauseBtn.classList.add('visible'));
         elem.addEventListener('mouseleave', () => {
-            globeHovered = false;
-            setTimeout(() => {
-                if (!globeHovered) {
-                    playPauseBtn.classList.remove('visible');
-                }
-            }, 300);
+            if (!globeHovered) setTimeout(() => playPauseBtn.classList.remove('visible'), 500);
         });
-
-        // Play/Pause button
+        
         playPauseBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             animationPlaying = !animationPlaying;
-            
-            const icon = playPauseBtn.querySelector('svg');
-            if (animationPlaying) {
-                // Show pause icon (two bars)
-                icon.innerHTML = '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
-                world.controls().autoRotate = true;
-            } else {
-                // Show play icon (triangle)
-                icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
-                world.controls().autoRotate = false;
-            }
+            playPauseBtn.querySelector('svg').innerHTML = animationPlaying 
+                ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' 
+                : '<path d="M8 5v14l11-7z"/>';
+            world.controls().autoRotate = animationPlaying;
         });
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            world.width(window.innerWidth).height(window.innerHeight);
-        });
-
-        // Initial camera position
-        setTimeout(() => {
-            world.pointOfView({ lat: 20, lng: 20, altitude: 2.5 }, 1500);
-        }, 500);
+        window.addEventListener('resize', () => world.width(window.innerWidth).height(window.innerHeight));
+        
+        // Initial Zoom
+        setTimeout(() => world.pointOfView({ lat: 20, lng: 20, altitude: 2.2 }, 1500), 500);
     </script>
 </body>
 </html>
